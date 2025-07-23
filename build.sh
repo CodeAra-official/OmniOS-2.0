@@ -185,16 +185,41 @@ run_os() {
     print_info "Starting QEMU with professional settings..."
     print_info "Press Ctrl+Alt+G to release mouse, Ctrl+Alt+Q to quit"
     
-    # Run with professional QEMU settings
-    qemu-system-i386 \
-        -drive format=raw,file="$OS_IMAGE",if=floppy \
-        -boot a \
-        -m 16M \
-        -display gtk \
-        -name "OmniOS 2.0 Professional Edition" \
-        -rtc base=localtime \
-        -no-reboot \
-        -monitor stdio
+    # Try different display options based on environment
+    if [ -n "$DISPLAY" ]; then
+        # X11 available, try GTK first, fallback to SDL
+        qemu-system-i386 \
+            -drive format=raw,file="$OS_IMAGE",if=floppy \
+            -boot a \
+            -m 16M \
+            -display gtk \
+            -name "OmniOS 2.0 Professional Edition" \
+            -rtc base=localtime \
+            -no-reboot \
+            -monitor stdio 2>/dev/null || \
+        qemu-system-i386 \
+            -drive format=raw,file="$OS_IMAGE",if=floppy \
+            -boot a \
+            -m 16M \
+            -display sdl \
+            -name "OmniOS 2.0 Professional Edition" \
+            -rtc base=localtime \
+            -no-reboot \
+            -monitor stdio
+    else
+        # No display available, use VNC or curses
+        print_info "No display detected, starting with VNC on port 5900"
+        print_info "Connect with: vncviewer localhost:5900"
+        qemu-system-i386 \
+            -drive format=raw,file="$OS_IMAGE",if=floppy \
+            -boot a \
+            -m 16M \
+            -display vnc=:0 \
+            -name "OmniOS 2.0 Professional Edition" \
+            -rtc base=localtime \
+            -no-reboot \
+            -monitor stdio
+    fi
 }
 
 # Function to show build statistics
