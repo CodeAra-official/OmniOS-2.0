@@ -1,5 +1,5 @@
 ; OmniOS 2.0 Professional Bootloader
-; Compact 512-byte bootloader with essential functionality
+; Compact 512-byte bootloader with professional design
 
 [BITS 16]
 [ORG 0x7C00]
@@ -20,31 +20,10 @@ start:
     mov si, boot_msg
     call print_string
     
-    ; Set first boot flag
+    ; Set first boot flag (stored at 0x500)
     mov byte [0x500], 1
     
     ; Load kernel from disk
-    call load_kernel
-    
-    ; Jump to kernel
-    jmp 0x1000:0x0000
-
-; Print string function
-print_string:
-    mov ah, 0x0E
-    mov bh, 0
-    mov bl, 0x0A  ; Green text
-.loop:
-    lodsb
-    cmp al, 0
-    je .done
-    int 0x10
-    jmp .loop
-.done:
-    ret
-
-; Load kernel from disk
-load_kernel:
     mov si, loading_msg
     call print_string
     
@@ -53,9 +32,9 @@ load_kernel:
     mov dl, 0x00
     int 0x13
     
-    ; Load kernel (18 sectors starting from sector 2)
+    ; Load 18 sectors of kernel starting from sector 2
     mov ah, 0x02        ; Read sectors
-    mov al, 18          ; Number of sectors
+    mov al, 18          ; Number of sectors to read
     mov ch, 0           ; Cylinder 0
     mov cl, 2           ; Start from sector 2
     mov dh, 0           ; Head 0
@@ -67,23 +46,45 @@ load_kernel:
     int 0x13
     jc disk_error
     
+    ; Display success message
     mov si, success_msg
     call print_string
-    ret
+    
+    ; Jump to kernel
+    jmp 0x1000:0x0000
 
 disk_error:
     mov si, error_msg
     call print_string
+    jmp halt
+
+print_string:
+    mov ah, 0x0E
+    mov bh, 0
+    mov bl, 0x0A        ; Bright green
+.loop:
+    lodsb
+    cmp al, 0
+    je .done
+    int 0x10
+    jmp .loop
+.done:
+    ret
+
+halt:
     cli
     hlt
+    jmp halt
 
 ; Boot messages
-boot_msg    db 'OmniOS 2.0 Professional Edition', 13, 10
-            db 'Booting system...', 13, 10, 0
+boot_msg    db '  ╔══════════════════════════════════════════════════════════════════════════════╗', 13, 10
+            db '  ║                        OmniOS 2.0 Professional Edition                      ║', 13, 10
+            db '  ║                              Bootloader v2.0                                ║', 13, 10
+            db '  ╚══════════════════════════════════════════════════════════════════════════════╝', 13, 10, 13, 10, 0
 
 loading_msg db 'Loading kernel...', 13, 10, 0
-success_msg db 'Kernel loaded successfully!', 13, 10, 0
-error_msg   db 'Disk read error!', 13, 10, 0
+success_msg db 'Kernel loaded successfully!', 13, 10, 'Starting OmniOS 2.0...', 13, 10, 13, 10, 0
+error_msg   db 'Disk read error! System halted.', 13, 10, 0
 
 ; Pad to 510 bytes and add boot signature
 times 510-($-$$) db 0

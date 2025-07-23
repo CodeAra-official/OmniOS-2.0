@@ -58,14 +58,6 @@ main_loop:
 display_header:
     call clear_screen
     
-    ; Set bright green text
-    mov ah, 0x09
-    mov al, ' '
-    mov bh, 0
-    mov bl, 0x0A
-    mov cx, 80
-    int 0x10
-    
     mov si, header_msg
     call print_string_color
     
@@ -640,7 +632,8 @@ save_setup_flag:
     ret
 
 ; Data section
-header_msg          db '  ╔══════════════════════════════════════════════════════════════════════════════╗', 13, 10
+header_msg          db 13, 10
+                    db '  ╔══════════════════════════════════════════════════════════════════════════════╗', 13, 10
                     db '  ║                        OmniOS 2.0 Professional Edition                      ║', 13, 10
                     db '  ╚══════════════════════════════════════════════════════════════════════════════╝', 13, 10, 0
 
@@ -651,7 +644,7 @@ setup_welcome       db '╔═════════════════�
                     db '╚═══════════════════════════════════════════════════════════════════════════════╝', 13, 10, 0
 
 setup_msg1          db 'Welcome to OmniOS 2.0! This appears to be your first boot.', 13, 10
-                    db 'Let''s set up your system. Press any key to continue...', 13, 10, 0
+                    db 'Let us set up your system. Press any key to continue...', 13, 10, 0
 
 create_user_msg     db 13, 10, 'Creating your user account:', 13, 10, 0
 username_prompt     db 'Enter username: ', 0
