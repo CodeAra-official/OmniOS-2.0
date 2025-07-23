@@ -1,7 +1,7 @@
 #!/bin/bash
-# OmniOS 2.0 Clean Script
+# OmniOS 2.0 Enhanced Edition Clean Script
 
-echo "Cleaning OmniOS 2.0 build files..."
+echo "Cleaning OmniOS 2.0 Enhanced Edition build files..."
 
 # Remove build directory
 if [ -d "build" ]; then
@@ -14,3 +14,4 @@ find . -name "*.tmp" -delete 2>/dev/null
 find . -name "*~" -delete 2>/dev/null
 
 echo "Clean completed!"
+echo "Run './build.sh' to rebuild the enhanced system."

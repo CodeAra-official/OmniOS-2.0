@@ -1,125 +1,176 @@
-# OmniOS 2.0 - Professional Operating System
+# OmniOS 2.0 Enhanced Command Edition
 
 ## Overview
-OmniOS 2.0 is a professional operating system built from scratch with a focus on simplicity, reliability, and performance. This Phoenix Edition represents a complete rewrite with enhanced features and improved stability.
+OmniOS 2.0 Enhanced Command Edition is a professional operating system with a complete command set for modern computing needs. This edition includes 20+ commands covering file operations, media control, network functions, and system administration.
+
+## Complete Command Set
+
+### Basic Commands
+- `help` - Show complete command reference
+- `ls` - List files and directories with type indicators
+- `cd <directory>` - Change directory (supports .. and /)
+- `exit` - Exit current application
+- `off` - Shutdown system safely
+
+### File Operations
+- `add <filename>` - Add new file or folder
+- `delete <filename>` - Delete file or folder (with confirmation)
+- `move <source> <dest>` - Move files/folders
+- `cut <filename>` - Cut file to clipboard
+- `copy <filename>` - Copy file to clipboard
+
+### System Commands
+- `install <package>` - Install software packages
+- `set <option>` - Configure system settings (color, time, language)
+- `admin` - Toggle administrator mode
+- `retry` - Retry last command
+- `back` - Go back/parent directory
+- `go <location>` - Navigate to specific location
+
+### Media & Network
+- `play <filename>` - Play media files
+- `stop` - Stop media playback
+- `download <url>` - Download files from internet
+
+### Applications
+- `open notepad` - Text editor with full editing capabilities
+- `open settings` - System configuration panel
+- `open files` - Advanced file manager
+- `open terminal` - Enhanced terminal mode
 
 ## Features
 
-### Core System
-- **Custom Bootloader**: Direct kernel loading without complex boot stages
-- **16-bit Kernel**: Optimized for compatibility and performance
-- **Professional Interface**: Clean blue-themed user interface
-- **Command Line Interface**: Full-featured command processor
+### Professional Interface
+- Blue professional theme
+- Color-coded output (green=success, red=error, yellow=warning)
+- Admin mode indicator
+- Enhanced prompts and status messages
 
-### Available Commands
-- `help` - Show command reference
-- `ls` - List files and directories (FIXED - no more crashes!)
-- `cd <directory>` - Change directory
-- `open <app>` - Open applications (notepad, settings, files)
-- `clear` - Clear screen
-- `ver` - Show system version
-- `time` - Display current time
-- `shutdown` - Shutdown system
-- `reboot` - Restart system
+### File System
+- Directory support with proper navigation
+- File type indicators (d=directory, -=file)
+- Parent directory navigation (..)
+- Root directory support
+
+### System Administration
+- Admin mode with elevated privileges
+- System configuration management
+- Package installation system
+- Network connectivity
 
 ### Built-in Applications
-- **Notepad**: Simple text editor
-- **Settings**: System configuration
-- **File Manager**: File and directory management
+- **Notepad**: Full-featured text editor
+- **Settings**: System configuration (Display, System Info, Network)
+- **File Manager**: Directory browsing and file operations
+- **Terminal**: Advanced command mode
 
-## System Requirements
-- **Processor**: x86 compatible (486 or higher)
-- **Memory**: 1 MB RAM minimum
-- **Storage**: 1.44 MB floppy disk or equivalent
-- **Display**: VGA compatible display adapter
+## Building and Running
 
-## Building OmniOS 2.0
-
-### Prerequisites
+### Quick Start
 \`\`\`bash
-# Ubuntu/Debian
-sudo apt-get install nasm qemu-system-x86 mtools
-
-# Or use the automated installer
-make install-deps
-\`\`\`
-
-### Build Process
-\`\`\`bash
-# Quick build and run
+# Build and run immediately
 ./build.sh --run
 
 # Or step by step
 make all
 make run
-
-# Debug mode
-make debug
 \`\`\`
 
-### Build Targets
-- `make all` - Build complete system
-- `make bootloader` - Build bootloader only
-- `make kernel` - Build kernel only
-- `make run` - Build and run in QEMU
-- `make clean` - Clean build files
+### Build Requirements
+- NASM assembler
+- mtools (FAT filesystem tools)
+- QEMU (for testing)
 
-## Usage
+### Install Dependencies
+\`\`\`bash
+# Ubuntu/Debian
+sudo apt-get install nasm mtools qemu-system-x86
 
-### Basic Commands
+# Or use automated installer
+make install-deps
 \`\`\`
-OmniOS 2.0 > help          # Show all commands
-OmniOS 2.0 > ls            # List files (now working!)
-OmniOS 2.0 > cd /          # Change to root directory
-OmniOS 2.0 > open notepad  # Open text editor
-OmniOS 2.0 > ver           # Show version info
-OmniOS 2.0 > time          # Show current time
-OmniOS 2.0 > clear         # Clear screen
-OmniOS 2.0 > shutdown      # Shutdown system
+
+## Usage Examples
+
+### Basic Navigation
+\`\`\`
+OmniOS > help                    # Show all commands
+OmniOS > ls                      # List current directory
+OmniOS > cd system              # Change to system directory
+OmniOS > cd ..                  # Go to parent directory
+OmniOS > cd /                   # Go to root directory
+\`\`\`
+
+### File Operations
+\`\`\`
+OmniOS > add myfile.txt         # Create new file
+OmniOS > copy myfile.txt        # Copy to clipboard
+OmniOS > delete oldfile.txt     # Delete file (with confirmation)
+OmniOS > move file.txt /system  # Move file to system directory
+\`\`\`
+
+### System Administration
+\`\`\`
+OmniOS > admin                  # Toggle admin mode
+[ADMIN] OmniOS > set color      # Change color scheme
+[ADMIN] OmniOS > install app    # Install new application
+[ADMIN] OmniOS > admin          # Exit admin mode
+\`\`\`
+
+### Media and Network
+\`\`\`
+OmniOS > download http://example.com/file.zip  # Download file
+OmniOS > play music.wav         # Play audio file
+OmniOS > stop                   # Stop playback
 \`\`\`
 
 ### Applications
 \`\`\`
-OmniOS 2.0 > open notepad   # Text editor
-OmniOS 2.0 > open settings  # System settings
-OmniOS 2.0 > open files     # File manager
+OmniOS > open notepad           # Launch text editor
+OmniOS > open settings          # System configuration
+OmniOS > open files             # File manager
+OmniOS > open terminal          # Advanced terminal
 \`\`\`
 
-## Architecture
-
-### System Components
-- **Bootloader** (`src/boot/bootloader.asm`) - System initialization
-- **Kernel** (`src/kernel/kernel.asm`) - Core system functionality
-- **Print System** (`src/kernel/print.asm`) - Text output with colors
-- **File System** (`src/kernel/filesystem.asm`) - File management
-- **Commands** (`src/kernel/commands.asm`) - Command processing
+## System Architecture
 
 ### Memory Layout
 - `0x7C00-0x7DFF`: Bootloader
-- `0x1000-0x8000`: Kernel
-- `0x8000+`: System data and buffers
+- `0x1000-0x8000`: Enhanced Kernel
+- `0x8000+`: System data, buffers, and applications
 
-## Version Information
-- **Version**: 2.0.0
-- **Codename**: Phoenix
-- **Release Date**: January 2025
-- **Language**: English
-- **Architecture**: x86 16-bit
+### File System
+- FAT12 compatible
+- Directory structure support
+- File type detection
+- Clipboard functionality
 
-## Fixed Issues
-- ✅ **ls command crash**: Completely rewritten file system handling
-- ✅ **Boot process**: Simplified bootloader eliminates boot failures
-- ✅ **Memory management**: Improved buffer handling
-- ✅ **Command parsing**: Enhanced command processor
-- ✅ **System stability**: Better error handling throughout
+### Color Scheme
+- **Blue Background**: Professional appearance
+- **White Text**: Normal output
+- **Green Text**: Success messages
+- **Red Text**: Error messages and admin mode
+- **Yellow Text**: Warning messages
 
-## New Features in 2.0
-- Professional blue-themed interface
-- Enhanced command set with `open`, `cd`, `time`
-- Built-in applications (Notepad, Settings, File Manager)
-- Improved error messages and help system
-- Stable file system operations
-- Clean shutdown and reboot functionality
+## Technical Specifications
+
+### System Requirements
+- **Processor**: x86 compatible (486 or higher)
+- **Memory**: 1 MB RAM minimum
+- **Storage**: 1.44 MB floppy disk or equivalent
+- **Display**: VGA compatible display adapter
+
+### Enhanced Features
+- 20+ complete commands
+- Professional color scheme
+- Admin mode with privileges
+- File operations with clipboard
+- Media player functionality
+- Network download capability
+- Built-in applications suite
+- Enhanced error handling
+- Command history and retry
+- Directory navigation
 
 ## Development
 
@@ -128,35 +179,65 @@ OmniOS 2.0 > open files     # File manager
 omnios-2.0/
 ├── src/
 │   ├── boot/
-│   │   └── bootloader.asm
+│   │   └── bootloader.asm      # Enhanced bootloader
 │   └── kernel/
-│       ├── kernel.asm
-│       ├── print.asm
-│       ├── filesystem.asm
-│       └── commands.asm
-├── build/
-├── Makefile
-├── build.sh
-├── run.sh
-└── README.md
+│       ├── kernel.asm          # Main kernel with all commands
+│       ├── print.asm           # Color printing functions
+│       ├── filesystem.asm      # File system operations
+│       └── network.asm         # Network functions
+├── build/                      # Build output directory
+├── Makefile                    # Enhanced build system
+├── build.sh                    # Build script
+└── README.md                   # This file
 \`\`\`
 
-### Contributing
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
+### Build Targets
+- `make all` - Build complete enhanced system
+- `make run` - Build and run in QEMU
+- `make clean` - Clean build files
+- `make report` - Generate detailed build report
+- `make help` - Show all available targets
+
+## Version Information
+- **Version**: 2.0.0 Enhanced Command Edition
+- **Codename**: Phoenix Enhanced
+- **Release Date**: January 2025
+- **Architecture**: x86 16-bit
+- **Commands**: 20+ complete command set
 
 ## License
-OmniOS 2.0 is released under the MIT License. See LICENSE file for details.
+OmniOS 2.0 Enhanced Command Edition is released under the MIT License.
 
 ## Support
 For issues, questions, or contributions:
-- Create an issue in the repository
-- Check the documentation
-- Review the source code comments
+- Review the complete command reference with `help`
+- Check the build report for system details
+- Test all commands in the enhanced environment
 
 ---
 
-**OmniOS 2.0 Phoenix Edition - Professional Operating System for the Modern Era**
+**OmniOS 2.0 Enhanced Command Edition - Professional Operating System with Complete Command Set**
+\`\`\`
+
+```shellscript file="run.sh"
+#!/bin/bash
+# OmniOS 2.0 Enhanced Edition Run Script
+
+if [ ! -f "build/omnios.img" ]; then
+    echo "OmniOS Enhanced Edition image not found. Building..."
+    ./build.sh
+fi
+
+echo "╔══════════════════════════════════════════════════════════════╗"
+echo "║              Starting OmniOS 2.0 Enhanced Edition           ║"
+echo "╚══════════════════════════════════════════════════════════════╝"
+echo ""
+echo "Enhanced Command Set Available:"
+echo "• Basic: help ls cd install open set admin exit off"
+echo "• Files: add delete move cut copy"
+echo "• Media: play stop"
+echo "• Network: download go retry back"
+echo ""
+echo "Starting system..."
+
+qemu-system-i386 -drive format=raw,file=build/omnios.img,if=floppy -boot a

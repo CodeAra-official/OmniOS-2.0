@@ -1,99 +1,114 @@
-; OmniOS 2.0 File System Functions
-; Fixed file system with proper ls command
+; OmniOS 2.0 Enhanced File System
+; Complete file operations with proper ls command
 
 init_filesystem:
     ; Initialize file system
     mov byte [file_count], 0
     
-    ; Add default files
-    call add_default_files
+    ; Add default files and directories
+    call add_default_entries
     
     ret
 
-add_default_files:
-    ; Add system files to file list
+add_default_entries:
+    ; Add system files and directories to file list
+    mov di, file_list
+    
+    ; Add directories first
+    mov al, 'D'         ; Directory marker
+    stosb
+    mov si, dir_system
+    call strcpy_to_list
+    
+    mov al, 'D'
+    stosb
+    mov si, dir_apps
+    call strcpy_to_list
+    
+    mov al, 'D'
+    stosb
+    mov si, dir_users
+    call strcpy_to_list
+    
+    ; Add files
+    mov al, 'F'         ; File marker
+    stosb
     mov si, file_kernel
-    mov di, file_list
-    call strcpy
+    call strcpy_to_list
     
-    mov si, file_system
-    mov di, file_list
-    add di, 32
-    call strcpy
-    
+    mov al, 'F'
+    stosb
     mov si, file_config
-    mov di, file_list
-    add di, 64
-    call strcpy
+    call strcpy_to_list
     
+    mov al, 'F'
+    stosb
     mov si, file_readme
-    mov di, file_list
-    add di, 96
-    call strcpy
+    call strcpy_to_list
     
-    mov byte [file_count], 4
+    mov al, 'F'
+    stosb
+    mov si, file_log
+    call strcpy_to_list
     
+    mov byte [file_count], 7
+    
+    ret
+
+strcpy_to_list:
+    ; Copy string from SI to current DI position
+    push ax
+    
+.copy_loop:
+    lodsb
+    stosb
+    cmp al, 0
+    jne .copy_loop
+    
+    ; Pad to 64 bytes per entry
+    mov cx, 63
+    sub cx, di
+    add cx, file_list
+    and cx, 63
+    mov al, 0
+    rep stosb
+    
+    pop ax
     ret
 
 scan_filesystem:
-    ; Scan for files (simplified implementation)
-    ; In a real system, this would read from disk
+    ; Scan current directory for files
+    ; This is a simplified implementation
     
     ; Reset file count
     mov byte [file_count], 0
     
-    ; Add files based on current directory
+    ; Check current directory and populate file list
     mov si, current_dir
     mov di, root_path
     call strcmp
     cmp ax, 0
     je .root_directory
     
-    ; Non-root directory (empty for now)
+    ; Non-root directory - show parent link
+    mov di, file_list
+    mov al, 'D'
+    stosb
+    mov si, parent_link
+    call strcpy_to_list
+    mov byte [file_count], 1
     ret
 
 .root_directory:
-    call add_default_files
-    ret
-
-strcmp:
-    push si
-    push di
-    
-.compare_loop:
-    mov al, [si]
-    mov ah, [di]
-    cmp al, ah
-    jne .not_equal
-    
-    cmp al, 0
-    je .equal
-    
-    inc si
-    inc di
-    jmp .compare_loop
-
-.equal:
-    mov ax, 0
-    jmp .done
-
-.not_equal:
-    mov ax, 1
-
-.done:
-    pop di
-    pop si
+    call add_default_entries
     ret
 
 ; File data
+dir_system      db 'system', 0
+dir_apps        db 'applications', 0
+dir_users       db 'users', 0
 file_kernel     db 'kernel.bin', 0
-                times 21 db 0
-
-file_system     db 'system.cfg', 0
-                times 21 db 0
-
-file_config     db 'config.txt', 0
-                times 21 db 0
-
+file_config     db 'config.sys', 0
 file_readme     db 'readme.txt', 0
-                times 21 db 0
+file_log        db 'system.log', 0
+parent_link     db '..', 0

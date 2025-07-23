@@ -1,10 +1,10 @@
-; OmniOS 2.0 Bootloader - Direct Kernel Boot
+; OmniOS 2.0 Bootloader - Enhanced Edition
 ; Simplified bootloader that loads kernel directly
 [BITS 16]
 [ORG 0x7C00]
 
 ; Jump to bootloader start
-jmp short bootloader_start
+jmp short start
 nop
 
 ; BIOS Parameter Block (BPB) for FAT12
@@ -30,7 +30,7 @@ volume_id          dd 0x12345678
 volume_label       db "OMNIOS 2.0 "
 filesystem_type    db "FAT12   "
 
-bootloader_start:
+start:
     ; Initialize segments
     cli
     xor ax, ax
@@ -40,8 +40,18 @@ bootloader_start:
     mov sp, 0x7C00
     sti
     
-    ; Clear screen
+    ; Clear screen with professional theme
     mov ax, 0x0003
+    int 0x10
+    
+    ; Set blue background
+    mov ah, 0x06
+    mov al, 0
+    mov bh, 0x1F        ; White text on blue background
+    mov ch, 0
+    mov cl, 0
+    mov dh, 24
+    mov dl, 79
     int 0x10
     
     ; Display boot message
@@ -61,6 +71,8 @@ bootloader_start:
 print_string:
     pusha
     mov ah, 0x0E
+    mov bh, 0
+    mov bl, 0x0F
 .loop:
     lodsb
     cmp al, 0
@@ -84,9 +96,9 @@ load_kernel:
     int 0x13
     jc disk_error
     
-    ; Load kernel (sectors 2-20)
+    ; Load kernel (sectors 2-30)
     mov ah, 0x02        ; Read sectors
-    mov al, 18          ; Number of sectors
+    mov al, 28          ; Number of sectors
     mov ch, 0           ; Cylinder 0
     mov cl, 2           ; Start sector 2
     mov dh, 0           ; Head 0
@@ -107,9 +119,9 @@ disk_error:
     hlt
 
 ; Data
-boot_msg     db 'OmniOS 2.0 Bootloader', 0x0D, 0x0A, 0
-loading_msg  db 'Loading kernel...', 0x0D, 0x0A, 0
-error_msg    db 'Disk error!', 0x0D, 0x0A, 0
+boot_msg     db 'OmniOS 2.0 - Professional Operating System', 0x0D, 0x0A, 0
+loading_msg  db 'Loading system kernel...', 0x0D, 0x0A, 0
+error_msg    db 'BOOT ERROR: Cannot load kernel!', 0x0D, 0x0A, 0
 
 boot_drive   db 0
 
