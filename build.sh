@@ -1,207 +1,203 @@
 #!/bin/bash
-# OmniOS 2.0 Enhanced Build Script with Update System
 
-echo "╔══════════════════════════════════════════════════════════════╗"
-echo "║                    OmniOS 2.0 Build System                  ║"
-echo "║                Enhanced Command Edition                      ║"
-echo "╚══════════════════════════════════════════════════════════════╝"
+# OmniOS 2.0 Enhanced Build System with GitHub Integration
+# Includes automatic updates from official repository
 
-# Colors
+REPO_URL="https://github.com/CodeAra-official/OmniOS-2.0.git"
+VERSION_FILE="version.json"
+BUILD_DIR="build"
+
+# Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-WHITE='\033[1;37m'
-NC='\033[0m'
+NC='\033[0m' # No Color
 
-# GitHub repository
-REPO_URL="https://github.com/CodeAra-official/OmniOS-2.0.git"
-CURRENT_VERSION="2.0.0"
+# Function to print colored output
+print_status() {
+    echo -e "${BLUE}[INFO]${NC} $1"
+}
+
+print_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
+}
+
+print_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
+}
+
+print_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
+
+# Function to display banner
+display_banner() {
+    echo "╔══════════════════════════════════════════════════════════════╗"
+    echo "║                    OmniOS 2.0 Build System                  ║"
+    echo "║                Enhanced Command Edition                      ║"
+    echo "╚══════════════════════════════════════════════════════════════╝"
+    echo ""
+}
 
 # Function to check for updates
 check_updates() {
-    echo -e "${BLUE}Checking for updates...${NC}"
+    print_status "Checking for updates from GitHub..."
     
-    if command -v git &> /dev/null; then
-        # Check if we're in a git repository
-        if [ -d ".git" ]; then
-            echo -e "${YELLOW}Fetching latest changes...${NC}"
-            git fetch origin main 2>/dev/null
-            
-            # Check if there are updates
-            LOCAL=$(git rev-parse HEAD)
-            REMOTE=$(git rev-parse origin/main 2>/dev/null)
-            
-            if [ "$LOCAL" != "$REMOTE" ]; then
-                echo -e "${GREEN}Updates available!${NC}"
-                read -p "Do you want to update? (y/n): " -n 1 -r
-                echo
-                if [[ $REPLY =~ ^[Yy]$ ]]; then
-                    echo -e "${YELLOW}Updating OmniOS 2.0...${NC}"
-                    git pull origin main
-                    echo -e "${GREEN}Update completed!${NC}"
-                    echo -e "${CYAN}Please run the build script again.${NC}"
-                    exit 0
-                fi
-            else
-                echo -e "${GREEN}You have the latest version!${NC}"
+    if [ ! -d ".git" ]; then
+        print_warning "Not a git repository. Initializing..."
+        git init
+        git remote add origin $REPO_URL
+    fi
+    
+    # Fetch latest changes
+    git fetch origin main 2>/dev/null
+    
+    if [ $? -eq 0 ]; then
+        LOCAL_COMMIT=$(git rev-parse HEAD 2>/dev/null || echo "none")
+        REMOTE_COMMIT=$(git rev-parse origin/main 2>/dev/null || echo "none")
+        
+        if [ "$LOCAL_COMMIT" != "$REMOTE_COMMIT" ]; then
+            print_warning "Updates available!"
+            echo "Local:  $LOCAL_COMMIT"
+            echo "Remote: $REMOTE_COMMIT"
+            echo ""
+            read -p "Do you want to update? (y/n): " -n 1 -r
+            echo ""
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                print_status "Updating from GitHub..."
+                git pull origin main
+                print_success "Update completed!"
+                return 0
             fi
         else
-            echo -e "${YELLOW}Not a git repository. Checking for manual updates...${NC}"
-            echo -e "${CYAN}To get updates, clone from: ${REPO_URL}${NC}"
+            print_success "Already up to date!"
         fi
     else
-        echo -e "${YELLOW}Git not found. Install git to enable automatic updates.${NC}"
-        echo -e "${CYAN}Manual download: ${REPO_URL}${NC}"
+        print_warning "Could not check for updates (network/repo issue)"
     fi
-}
-
-# Function to download updates if not git repo
-download_updates() {
-    if [ ! -d ".git" ] && command -v curl &> /dev/null; then
-        echo -e "${BLUE}Downloading latest version info...${NC}"
-        
-        # Try to get version info from GitHub API
-        LATEST_VERSION=$(curl -s "https://api.github.com/repos/CodeAra-official/OmniOS-2.0/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' 2>/dev/null)
-        
-        if [ ! -z "$LATEST_VERSION" ] && [ "$LATEST_VERSION" != "$CURRENT_VERSION" ]; then
-            echo -e "${GREEN}New version available: ${LATEST_VERSION}${NC}"
-            echo -e "${CYAN}Download from: ${REPO_URL}${NC}"
-        fi
-    fi
-}
-
-# Check dependencies
-echo -e "${BLUE}Checking dependencies...${NC}"
-
-MISSING_DEPS=()
-
-if ! command -v nasm &> /dev/null; then
-    MISSING_DEPS+=("nasm")
-fi
-
-if ! command -v mtools &> /dev/null; then
-    MISSING_DEPS+=("mtools")
-fi
-
-if ! command -v qemu-system-i386 &> /dev/null; then
-    echo -e "${YELLOW}Warning: QEMU not found${NC}"
-    echo "Install with: sudo apt-get install qemu-system-x86"
-fi
-
-if [ ${#MISSING_DEPS[@]} -ne 0 ]; then
-    echo -e "${RED}Missing dependencies: ${MISSING_DEPS[*]}${NC}"
-    echo "Install with: sudo apt-get install ${MISSING_DEPS[*]}"
-    exit 1
-fi
-
-echo -e "${GREEN}Dependencies OK${NC}"
-
-# Check for updates if requested
-if [ "$1" = "--check-updates" ] || [ "$1" = "-u" ]; then
-    check_updates
-    download_updates
-fi
-
-# Build system
-echo -e "${BLUE}Building OmniOS 2.0 Enhanced Edition...${NC}"
-
-# Create build directory
-mkdir -p build
-rm -rf build/*
-
-# Build bootloader
-echo -e "${YELLOW}Building bootloader...${NC}"
-nasm -f bin -o build/bootloader.bin src/boot/bootloader.asm
-if [ $? -eq 0 ]; then
-    echo -e "${GREEN}Bootloader built successfully${NC}"
-    BOOTLOADER_SIZE=$(stat -c%s build/bootloader.bin)
-    echo -e "${CYAN}Bootloader size: ${BOOTLOADER_SIZE} bytes${NC}"
     
-    if [ $BOOTLOADER_SIZE -ne 512 ]; then
-        echo -e "${YELLOW}Warning: Bootloader size is not 512 bytes${NC}"
+    return 1
+}
+
+# Function to check dependencies
+check_dependencies() {
+    print_status "Checking dependencies..."
+    
+    # Check for required tools
+    MISSING_DEPS=""
+    
+    if ! command -v nasm &> /dev/null; then
+        MISSING_DEPS="$MISSING_DEPS nasm"
     fi
-else
-    echo -e "${RED}Bootloader build failed${NC}"
-    exit 1
-fi
-
-# Build enhanced kernel
-echo -e "${YELLOW}Building enhanced kernel...${NC}"
-nasm -f bin -o build/kernel.bin src/kernel/kernel.asm
-if [ $? -eq 0 ]; then
-    echo -e "${GREEN}Enhanced kernel built successfully${NC}"
-    KERNEL_SIZE=$(stat -c%s build/kernel.bin)
-    echo -e "${CYAN}Kernel size: ${KERNEL_SIZE} bytes${NC}"
-else
-    echo -e "${RED}Kernel build failed${NC}"
-    exit 1
-fi
-
-# Create floppy image
-echo -e "${YELLOW}Creating disk image...${NC}"
-dd if=/dev/zero of=build/omnios.img bs=512 count=2880 2>/dev/null
-mkfs.fat -F 12 -n "OMNIOS20" build/omnios.img >/dev/null 2>&1
-
-# Install bootloader
-echo -e "${YELLOW}Installing bootloader...${NC}"
-dd if=build/bootloader.bin of=build/omnios.img conv=notrunc 2>/dev/null
-
-# Install kernel
-echo -e "${YELLOW}Installing kernel...${NC}"
-dd if=build/kernel.bin of=build/omnios.img bs=512 seek=1 conv=notrunc 2>/dev/null
-
-echo -e "${GREEN}Disk image created successfully${NC}"
-
-# Verify build
-echo -e "${YELLOW}Verifying build...${NC}"
-if [ -f "build/omnios.img" ]; then
-    IMAGE_SIZE=$(stat -c%s build/omnios.img)
-    if [ $IMAGE_SIZE -eq 1474560 ]; then
-        echo -e "${GREEN}Build verification passed${NC}"
-    else
-        echo -e "${YELLOW}Warning: Image size unexpected (${IMAGE_SIZE} bytes)${NC}"
+    
+    if ! command -v qemu-system-i386 &> /dev/null; then
+        MISSING_DEPS="$MISSING_DEPS qemu-system-i386"
     fi
-fi
-
-# Show build summary
-echo ""
-echo -e "${GREEN}╔══════════════════════════════════════════════════════════════╗${NC}"
-echo -e "${GREEN}║                     BUILD SUCCESSFUL!                       ║${NC}"
-echo -e "${GREEN}╚══════════════════════════════════════════════════════════════╝${NC}"
-
-echo -e "${WHITE}Build Summary:${NC}"
-echo -e "  Version: ${CURRENT_VERSION} Enhanced Command Edition"
-echo -e "  Repository: ${REPO_URL}"
-echo -e "  Bootloader: $(ls -lh build/bootloader.bin 2>/dev/null | awk '{print $5}' || echo 'N/A')"
-echo -e "  Enhanced Kernel: $(ls -lh build/kernel.bin 2>/dev/null | awk '{print $5}' || echo 'N/A')"
-echo -e "  Image: $(ls -lh build/omnios.img 2>/dev/null | awk '{print $5}' || echo 'N/A')"
-
-echo ""
-echo -e "${CYAN}Enhanced Command Set Available:${NC}"
-echo -e "${WHITE}Basic Commands:${NC} help ls cd install open set admin exit off"
-echo -e "${WHITE}File Operations:${NC} add delete move cut copy"
-echo -e "${WHITE}Media/Network:${NC} play stop download go retry back"
-
-echo ""
-echo -e "${CYAN}To run OmniOS 2.0 Enhanced Edition:${NC}"
-echo -e "  make run"
-echo -e "  ./run-safe.sh"
-echo -e "  qemu-system-i386 -drive format=raw,file=build/omnios.img,if=floppy -boot a"
-
-echo ""
-echo -e "${CYAN}Update Commands:${NC}"
-echo -e "  ./build.sh --check-updates  # Check for updates"
-echo -e "  ./build.sh -u              # Check for updates (short)"
-
-# Auto-run if requested
-if [ "$1" = "--run" ] || [ "$2" = "--run" ]; then
-    echo ""
-    echo -e "${CYAN}Starting OmniOS 2.0 Enhanced Edition...${NC}"
-    if command -v qemu-system-i386 &> /dev/null; then
-        qemu-system-i386 -drive format=raw,file=build/omnios.img,if=floppy -boot a -display curses
-    else
-        echo -e "${RED}QEMU not found. Please install qemu-system-x86${NC}"
+    
+    if ! command -v dd &> /dev/null; then
+        MISSING_DEPS="$MISSING_DEPS dd"
     fi
-fi
+    
+    if [ -n "$MISSING_DEPS" ]; then
+        print_error "Missing dependencies:$MISSING_DEPS"
+        print_status "Please install missing dependencies and try again."
+        exit 1
+    fi
+    
+    print_success "Dependencies OK"
+}
+
+# Function to build the system
+build_system() {
+    print_status "Building OmniOS 2.0 Enhanced Edition..."
+    
+    # Create build directory
+    mkdir -p $BUILD_DIR
+    
+    # Build bootloader
+    print_status "Building bootloader..."
+    nasm -f bin src/boot/bootloader.asm -o $BUILD_DIR/bootloader.bin
+    if [ $? -ne 0 ]; then
+        print_error "Bootloader build failed"
+        exit 1
+    fi
+    print_success "Bootloader built successfully"
+    
+    # Build kernel
+    print_status "Building kernel..."
+    nasm -f bin src/kernel/kernel.asm -o $BUILD_DIR/kernel.bin
+    if [ $? -ne 0 ]; then
+        print_error "Kernel build failed"
+        exit 1
+    fi
+    print_success "Kernel built successfully"
+    
+    # Create disk image
+    print_status "Creating disk image..."
+    dd if=/dev/zero of=$BUILD_DIR/omnios.img bs=1024 count=1440 2>/dev/null
+    dd if=$BUILD_DIR/bootloader.bin of=$BUILD_DIR/omnios.img bs=512 count=1 conv=notrunc 2>/dev/null
+    dd if=$BUILD_DIR/kernel.bin of=$BUILD_DIR/omnios.img bs=512 seek=1 conv=notrunc 2>/dev/null
+    
+    print_success "Disk image created: $BUILD_DIR/omnios.img"
+}
+
+# Function to run the system
+run_system() {
+    if [ ! -f "$BUILD_DIR/omnios.img" ]; then
+        print_error "Disk image not found. Please build first."
+        exit 1
+    fi
+    
+    print_status "Starting OmniOS 2.0..."
+    print_status "Use Ctrl+Alt+G to release mouse, Ctrl+Alt+Q to quit"
+    
+    qemu-system-i386 -drive format=raw,file=$BUILD_DIR/omnios.img -m 64M -display curses 2>/dev/null || \
+    qemu-system-i386 -drive format=raw,file=$BUILD_DIR/omnios.img -m 64M -nographic
+}
+
+# Function to clean build files
+clean_build() {
+    print_status "Cleaning build files..."
+    rm -rf $BUILD_DIR
+    print_success "Build files cleaned"
+}
+
+# Main script logic
+display_banner
+
+case "$1" in
+    --check-updates)
+        check_updates
+        ;;
+    --clean)
+        clean_build
+        ;;
+    --run)
+        run_system
+        ;;
+    --build)
+        check_dependencies
+        build_system
+        ;;
+    *)
+        # Default: check updates, then build
+        if [ "$1" != "--no-update" ]; then
+            check_updates
+        fi
+        
+        check_dependencies
+        build_system
+        
+        if [ "$1" == "--run" ] || [ -z "$1" ]; then
+            echo ""
+            read -p "Do you want to run OmniOS now? (y/n): " -n 1 -r
+            echo ""
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                run_system
+            fi
+        fi
+        ;;
+esac
+
+print_success "Build process completed!"

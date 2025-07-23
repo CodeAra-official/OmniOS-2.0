@@ -1,11 +1,11 @@
-; OmniOS 2.0 Enhanced Print Functions
-; Professional color scheme and formatting
+; OmniOS 2.0 Enhanced Print Functions with Black Background
+[BITS 16]
 
 print_colored:
     pusha
     mov ah, 0x0E
     mov bh, 0
-    mov bl, 0x0F        ; White text
+    mov bl, 0x0F        ; White text on black background
     
 .print_loop:
     lodsb
@@ -22,7 +22,7 @@ print_error:
     pusha
     mov ah, 0x0E
     mov bh, 0
-    mov bl, 0x0C        ; Red text
+    mov bl, 0x0C        ; Red text on black background
     
 .print_loop:
     lodsb
@@ -39,7 +39,7 @@ print_success:
     pusha
     mov ah, 0x0E
     mov bh, 0
-    mov bl, 0x0A        ; Green text
+    mov bl, 0x0A        ; Green text on black background
     
 .print_loop:
     lodsb
@@ -56,7 +56,7 @@ print_warning:
     pusha
     mov ah, 0x0E
     mov bh, 0
-    mov bl, 0x0E        ; Yellow text
+    mov bl, 0x0E        ; Yellow text on black background
     
 .print_loop:
     lodsb
@@ -87,10 +87,10 @@ print_char:
     ret
 
 clear_screen:
-    ; Clear screen with professional theme
+    ; Clear screen with black background instead of blue
     mov ah, 0x06
     mov al, 0
-    mov bh, 0x1F        ; White text on blue background
+    mov bh, 0x0F        ; White text on black background
     mov ch, 0
     mov cl, 0
     mov dh, 24
