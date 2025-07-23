@@ -40,14 +40,14 @@ start:
     mov sp, 0x7C00
     sti
     
-    ; Clear screen with professional theme
+    ; Clear screen
     mov ax, 0x0003
     int 0x10
     
     ; Set blue background
     mov ah, 0x06
     mov al, 0
-    mov bh, 0x1F        ; White text on blue background
+    mov bh, 0x1F
     mov ch, 0
     mov cl, 0
     mov dh, 24
@@ -61,7 +61,7 @@ start:
     ; Save boot drive
     mov [boot_drive], dl
     
-    ; Load kernel directly from specific sectors
+    ; Load kernel
     call load_kernel_direct
     
     ; Jump to kernel
@@ -83,40 +83,31 @@ print_string:
     popa
     ret
 
-; Load kernel directly from sectors (fixed approach)
+; Load kernel directly
 load_kernel_direct:
     pusha
     
     mov si, loading_msg
     call print_string
     
-    ; Reset disk system
+    ; Reset disk
     mov ah, 0x00
     mov dl, [boot_drive]
     int 0x13
     jc disk_error
     
-    ; Load kernel starting from sector 2 (after bootloader)
-    ; Load multiple sectors to ensure we get the full kernel
-    mov ah, 0x02        ; Read sectors function
-    mov al, 50          ; Number of sectors to read (25KB)
-    mov ch, 0           ; Cylinder 0
-    mov cl, 2           ; Start from sector 2
-    mov dh, 0           ; Head 0
-    mov dl, [boot_drive] ; Drive number
-    mov bx, 0x1000      ; Load to segment 0x1000
+    ; Load kernel
+    mov ah, 0x02
+    mov al, 30
+    mov ch, 0
+    mov cl, 2
+    mov dh, 0
+    mov dl, [boot_drive]
+    mov bx, 0x1000
     mov es, bx
-    mov bx, 0x0000      ; Offset 0
+    mov bx, 0x0000
     int 0x13
     jc disk_error
-    
-    ; Verify we loaded something
-    mov ax, 0x1000
-    mov es, ax
-    mov bx, 0x0000
-    mov al, [es:bx]
-    cmp al, 0
-    je disk_error
     
     mov si, success_msg
     call print_string
@@ -127,47 +118,16 @@ load_kernel_direct:
 disk_error:
     mov si, error_msg
     call print_string
-    
-    ; Try alternative loading method
-    mov si, retry_msg
-    call print_string
-    
-    ; Alternative: Load from different sectors
-    mov ah, 0x02
-    mov al, 30          ; Try fewer sectors
-    mov ch, 0
-    mov cl, 3           ; Try sector 3
-    mov dh, 0
-    mov dl, [boot_drive]
-    mov bx, 0x1000
-    mov es, bx
-    mov bx, 0x0000
-    int 0x13
-    jnc .success
-    
-    ; If still fails, halt
-    mov si, fatal_error_msg
-    call print_string
     cli
     hlt
-    jmp $
-
-.success:
-    mov si, alt_success_msg
-    call print_string
-    ret
 
 ; Data
-boot_msg         db 'OmniOS 2.0 Professional Operating System', 0x0D, 0x0A, 0
-loading_msg      db 'Loading enhanced kernel...', 0x0D, 0x0A, 0
-success_msg      db 'Kernel loaded successfully!', 0x0D, 0x0A, 0
-error_msg        db 'Kernel load error! Trying alternative...', 0x0D, 0x0A, 0
-retry_msg        db 'Attempting alternative load method...', 0x0D, 0x0A, 0
-alt_success_msg  db 'Alternative load successful!', 0x0D, 0x0A, 0
-fatal_error_msg  db 'FATAL: Cannot load kernel! System halted.', 0x0D, 0x0A, 0
+boot_msg     db 'OmniOS 2.0 Professional OS', 0x0D, 0x0A, 0
+loading_msg  db 'Loading kernel...', 0x0D, 0x0A, 0
+success_msg  db 'Kernel loaded!', 0x0D, 0x0A, 0
+error_msg    db 'Boot Error!', 0x0D, 0x0A, 0
+boot_drive   db 0
 
-boot_drive       db 0
-
-; Boot signature
+; Padding and boot signature
 times 510-($-$$) db 0
 dw 0xAA55
