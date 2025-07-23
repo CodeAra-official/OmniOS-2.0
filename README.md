@@ -1,218 +1,112 @@
 # OmniOS 2.0 Professional Edition
 
-A comprehensive 16-bit operating system with modern features, professional design, and enhanced user experience.
+A complete 16-bit operating system with modern features, professional design, and comprehensive functionality.
 
-## 🌟 Key Features
+## 🚀 Features
 
-### Core System Features
-- **Professional Design**: Clean black background with optimized color schemes
-- **Initial Setup System**: First-boot configuration wizard
+### Core System
+- **Professional Design**: Clean black background with color-coded interface
+- **Initial Setup System**: First-boot wizard for user account and system configuration
 - **User Authentication**: Secure login system with password protection
-- **Administrative Mode**: Elevated privileges for system management
-- **Factory Reset**: Complete system restoration capability
+- **Multi-theme Support**: Default, Matrix (Green), and High Contrast themes
 
-### Enhanced User Interface
-- **Multiple Color Themes**: 
-  - Default (Professional Black/White)
-  - Matrix (Terminal Green/Black)
-  - High Contrast (Maximum Readability)
-- **Comprehensive Help System**: Detailed command documentation
-- **Interactive Settings Menu**: Centralized system configuration
-- **Professional Command Interface**: Enhanced command processing
+### Enhanced Interface
+- **Comprehensive Settings Menu**: 6 main configuration categories
+- **Administrative Mode**: Elevated privileges with password protection
+- **Color-coded Commands**: Professional command-line interface
+- **Enhanced Help System**: Detailed documentation for all features
 
 ### System Management
-- **WiFi Configuration**: Network setup and management
-- **User Management**: Account settings and administration
-- **Application Management**: System application control
-- **Theme Customization**: Real-time color scheme switching
-- **System Information**: Detailed version and status display
+- **WiFi Configuration**: Network scanning and connection management
+- **User Management**: Account settings and administrative controls
+- **Application Management**: System app control and configuration
+- **Factory Reset**: Complete system restoration (admin-only)
 
-### Build System Features
-- **Color-Coded Output**: Professional build feedback
-- **Comprehensive Error Handling**: Detailed error reporting
-- **Dependency Checking**: Automatic tool verification
-- **Multi-Platform Support**: Linux, macOS, and Windows compatibility
+### Build System
+- **Color-coded Build Output**: Professional build process with status indicators
+- **Comprehensive Error Handling**: Detailed error reporting and validation
+- **Cross-platform Support**: Works on Linux, macOS, and Windows (WSL)
+- **Automated Testing**: Built-in verification and validation
 
-## 🚀 Quick Start
+## 🛠️ Building OmniOS 2.0
 
 ### Prerequisites
+
+**Required Tools:**
+- `nasm` - Netwide Assembler for x86 assembly
+- `dd` - Disk utility for image creation
+- `make` - Build automation (optional)
+
+**Optional Tools:**
+- `qemu-system-i386` - For testing the OS
+- `git` - For version control
+
+### Installation Commands
+
+**Ubuntu/Debian:**
 \`\`\`bash
-# Ubuntu/Debian
-sudo apt-get install nasm qemu-system-x86
-
-# CentOS/RHEL
-sudo yum install nasm qemu-kvm
-
-# macOS
-brew install nasm qemu
-
-# Arch Linux
-sudo pacman -S nasm qemu
+sudo apt-get update
+sudo apt-get install nasm qemu-system-x86 build-essential
 \`\`\`
 
-### Building OmniOS
+**CentOS/RHEL/Fedora:**
 \`\`\`bash
-# Clone the repository
-git clone <repository-url>
-cd omnios-2.0
+sudo dnf install nasm qemu-system-x86 make
+# or for older versions:
+sudo yum install nasm qemu-kvm make
+\`\`\`
 
-# Make build script executable
-chmod +x build.sh
+**macOS:**
+\`\`\`bash
+brew install nasm qemu make
+\`\`\`
 
-# Build the system
+**Arch Linux:**
+\`\`\`bash
+sudo pacman -S nasm qemu make
+\`\`\`
+
+### Building the System
+
+**Quick Build and Run:**
+\`\`\`bash
 ./build.sh
 \`\`\`
 
-### Running OmniOS
+**Build Options:**
 \`\`\`bash
-# Standard mode (GUI)
-./run.sh
-
-# Text mode
-./run-text.sh
-
-# Safe mode (debugging)
-./run-safe.sh
+./build.sh --build    # Build only
+./build.sh --run      # Run existing build
+./build.sh --clean    # Clean and rebuild
+./build.sh --check    # Check dependencies
+./build.sh --help     # Show help
 \`\`\`
 
-## 📋 System Requirements
+**Alternative Build Methods:**
+\`\`\`bash
+make all              # Build complete system
+make run              # Build and run
+make clean            # Clean build files
+\`\`\`
 
-### Development Environment
-- **NASM Assembler**: Version 2.13 or higher
-- **QEMU Emulator**: Version 2.5 or higher (for testing)
-- **Unix-like OS**: Linux, macOS, or WSL on Windows
-- **Disk Space**: Minimum 50MB for build environment
+## 🖥️ Running OmniOS 2.0
 
-### Target Hardware
-- **Architecture**: x86 (16-bit Real Mode)
-- **Memory**: Minimum 640KB RAM
-- **Storage**: 1.44MB floppy disk or USB drive
-- **Display**: VGA-compatible display adapter
+### QEMU (Recommended)
+\`\`\`bash
+# Standard run
+./run.sh
 
-## 🎯 First Boot Experience
+# Text mode (no GUI)
+./run-text.sh
 
-### Initial Setup Process
-1. **System Detection**: Automatic first-boot detection
-2. **User Account Creation**: Username and password setup
-3. **Network Configuration**: WiFi setup and connection
-4. **Theme Selection**: Choose your preferred color scheme
-5. **Setup Completion**: System ready for use
+# Safe mode (fallback display)
+./run-safe.sh
 
-### Subsequent Boots
-- **Login Screen**: Secure authentication required
-- **Desktop Environment**: Professional interface with system status
-- **Command Interface**: Full access to system features
+# Manual QEMU command
+qemu-system-i386 -drive format=raw,file=omnios.img,if=floppy -boot a
+\`\`\`
 
-## 💻 Command Reference
-
-### Basic Commands
-- `help` - Display comprehensive command help
-- `clear` - Clear screen and refresh desktop
-- `version` - Show system version and build information
-- `theme` - Change color scheme interactively
-- `logout` - Return to login screen
-- `exit` - Shutdown system
-
-### System Commands
-- `settings` - Open comprehensive settings menu
-- `admin` - Toggle administrator mode
-- `users` - User account management
-- `apps` - Application management interface
-
-### Network Commands
-- `wifi` - WiFi configuration and network management
-
-### Administrative Commands (Admin Mode Required)
-- `factory` - Factory reset system to defaults
-
-## ⚙️ Settings Menu Options
-
-### 1. WiFi Configuration
-- Network scanning and detection
-- Connection management
-- Signal strength monitoring
-- Security configuration
-
-### 2. User Management
-- Account information display
-- Password management
-- Administrative status
-- User preferences
-
-### 3. Application Management
-- Installed application listing
-- Application configuration
-- System tool management
-- Feature toggles
-
-### 4. Admin Mode Toggle
-- Secure privilege elevation
-- Administrative access control
-- System-level operations
-- Security management
-
-### 5. Color Theme Selection
-- Real-time theme switching
-- Professional color schemes
-- Accessibility options
-- Custom theme support
-
-### 6. Factory Reset
-- Complete system restoration
-- Data erasure warning
-- Confirmation process
-- Automatic system restart
-
-## 🎨 Color Themes
-
-### Default Theme (Professional)
-- **Background**: Black
-- **Text**: Light Gray/White
-- **Accents**: Cyan, Green, Yellow
-- **Errors**: Red
-- **Use Case**: Professional environments, general use
-
-### Matrix Theme (Retro)
-- **Background**: Black
-- **Text**: Green
-- **Accents**: Bright Green
-- **Errors**: Red
-- **Use Case**: Terminal enthusiasts, retro computing
-
-### High Contrast Theme (Accessibility)
-- **Background**: Black
-- **Text**: Bright White
-- **Accents**: High contrast colors
-- **Errors**: Bright Red
-- **Use Case**: Accessibility, low vision users
-
-## 🔧 Build System Details
-
-### Color-Coded Build Output
-- **🔵 [INFO]**: General information messages
-- **🟢 [SUCCESS]**: Successful operations
-- **🟡 [WARNING]**: Non-critical warnings
-- **🔴 [ERROR]**: Critical errors requiring attention
-
-### Build Process Steps
-1. **Dependency Checking**: Verify required tools
-2. **Environment Setup**: Create build directories
-3. **Source Validation**: Check source file integrity
-4. **Bootloader Assembly**: Compile bootloader code
-5. **Kernel Assembly**: Compile kernel code
-6. **Image Creation**: Generate bootable disk image
-7. **Verification**: Validate final image
-8. **Summary**: Display build results
-
-### Build Artifacts
-- `build/bootloader.bin` - Assembled bootloader (512 bytes)
-- `build/kernel.bin` - Assembled kernel (12KB)
-- `build/omnios.img` - Temporary build image
-- `omnios.img` - Final bootable image (1.44MB)
-
-## 🚀 Advanced Usage
-
-### Custom Installation
+### Physical Hardware
 \`\`\`bash
 # Flash to USB drive (replace /dev/sdX with your device)
 sudo dd if=omnios.img of=/dev/sdX bs=512 status=progress
@@ -221,105 +115,216 @@ sudo dd if=omnios.img of=/dev/sdX bs=512 status=progress
 sudo dd if=omnios.img of=/dev/fd0 bs=512
 \`\`\`
 
-### Development Mode
-\`\`\`bash
-# Build with debug information
-./build-debug.sh
+## 📋 First Boot Experience
 
-# Enhanced build with additional features
-./build-enhanced.sh
+### Initial Setup Wizard
+1. **System Detection**: Bootloader detects first boot automatically
+2. **User Account Creation**: Create username and password
+3. **Network Configuration**: Configure WiFi settings
+4. **Color Scheme Selection**: Choose visual theme
+5. **Setup Completion**: System ready for use
 
-# Termux compatibility build
-./build-termux.sh
+### Subsequent Boots
+1. **Login Screen**: Enter username and password
+2. **Desktop Environment**: Full system access
+3. **Command Interface**: All features available
+
+## 💻 Using OmniOS 2.0
+
+### Basic Commands
+\`\`\`
+help        - Show comprehensive help menu
+clear       - Clear screen and refresh desktop
+version     - Show detailed system information
+theme       - Change color scheme
+logout      - Logout current user
+exit        - Shutdown system
 \`\`\`
 
-### System Maintenance
-\`\`\`bash
-# Clean build artifacts
-./clean.sh
-
-# Verify build integrity
-./verify-build.sh
-
-# Update system components
-./update.sh
+### System Commands
 \`\`\`
+settings    - Open comprehensive settings menu
+admin       - Toggle administrator mode
+users       - User management interface
+apps        - Application management system
+wifi        - WiFi configuration menu
+\`\`\`
+
+### Administrative Commands
+\`\`\`
+factory     - Factory reset system (admin mode required)
+\`\`\`
+
+### Settings Menu Options
+1. **WiFi Configuration** - Network management
+2. **User Management** - Account settings
+3. **Application Management** - System apps
+4. **Admin Mode Toggle** - Privilege elevation
+5. **Color Theme Selection** - Visual customization
+6. **Factory Reset** - System restoration
+
+## 🎨 Color Themes
+
+### 1. Default (Professional)
+- Black background with white text
+- Professional business appearance
+- Optimal for productivity
+
+### 2. Matrix (Retro Terminal)
+- Black background with green text
+- Classic terminal aesthetic
+- Nostalgic computing experience
+
+### 3. High Contrast
+- Black background with bright white text
+- Maximum readability
+- Accessibility optimized
+
+## 🔧 Technical Specifications
+
+### System Requirements
+- **Architecture**: x86 16-bit Real Mode
+- **Memory**: 640KB minimum
+- **Storage**: 1.44MB floppy disk or equivalent
+- **Display**: VGA compatible, 80x25 text mode
+
+### File Structure
+\`\`\`
+OmniOS/
+├── src/
+│   ├── boot/
+│   │   └── bootloader.asm    # Enhanced bootloader
+│   └── kernel/
+│       └── kernel.asm        # Complete kernel
+├── build/                    # Build output directory
+├── docs/                     # Documentation
+├── build.sh                  # Main build script
+├── run.sh                    # QEMU runner
+├── Makefile                  # Build automation
+└── README.md                 # This file
+\`\`\`
+
+### Build Output
+- `bootloader.bin` - 512-byte bootloader
+- `kernel.bin` - Complete kernel (9KB)
+- `omnios.img` - Bootable 1.44MB disk image
+
+## 🚨 Troubleshooting
+
+### Common Issues
+
+**Build Errors:**
+\`\`\`bash
+# Check dependencies
+./build.sh --check
+
+# Clean rebuild
+./build.sh --clean
+
+# View detailed errors
+./build.sh --build 2>&1 | tee build.log
+\`\`\`
+
+**Runtime Issues:**
+\`\`\`bash
+# Use safe mode
+./run-safe.sh
+
+# Text mode only
+./run-text.sh
+
+# Check QEMU installation
+qemu-system-i386 --version
+\`\`\`
+
+**Setup Not Appearing:**
+- Ensure clean build: `./build.sh --clean`
+- Verify first boot detection in bootloader
+- Check disk image integrity
+
+### Getting Help
+
+1. **Check Build Report**: `./build.sh --report`
+2. **Validate Environment**: `./build.sh --check`
+3. **Review Logs**: Check build output for errors
+4. **Test Components**: Build individual components
 
 ## 🔒 Security Features
 
-### Authentication System
-- **Secure Login**: Password-protected user accounts
-- **Admin Mode**: Elevated privilege system
-- **Session Management**: Automatic logout capabilities
-- **Factory Reset Protection**: Admin-only system reset
+### User Authentication
+- Password-protected login system
+- Secure credential storage
+- Session management
 
-### Data Protection
-- **Password Masking**: Hidden password input
-- **Secure Storage**: Protected credential storage
-- **Access Control**: Role-based system access
-- **Audit Trail**: System operation logging
+### Administrative Controls
+- Elevated privilege system
+- Password-protected admin mode
+- Restricted administrative commands
 
-## 🐛 Troubleshooting
+### System Protection
+- Factory reset protection (admin-only)
+- Secure boot process
+- Data validation and verification
 
-### Common Build Issues
-1. **Missing NASM**: Install NASM assembler
-2. **Permission Denied**: Make scripts executable with `chmod +x`
-3. **QEMU Not Found**: Install QEMU for testing
-4. **Disk Space**: Ensure adequate free space
+## 🌟 Advanced Features
 
-### Runtime Issues
-1. **Boot Failure**: Verify image integrity
-2. **Setup Loop**: Check first-boot flag
-3. **Login Issues**: Verify password entry
-4. **Display Problems**: Try different color themes
+### Professional Build System
+- **Color-coded Output**: Status indicators for all operations
+- **Comprehensive Validation**: Source file and dependency checking
+- **Error Handling**: Detailed error reporting and recovery
+- **Cross-platform**: Works on multiple operating systems
 
-### Recovery Options
-1. **Factory Reset**: Use admin mode factory reset
-2. **Safe Mode**: Boot with `./run-safe.sh`
-3. **Rebuild**: Clean build with `./clean.sh && ./build.sh`
-4. **Manual Recovery**: Flash fresh image to device
+### Enhanced User Experience
+- **Professional Interface**: Clean, modern design
+- **Intuitive Navigation**: Easy-to-use menu systems
+- **Comprehensive Help**: Built-in documentation
+- **Accessibility**: High contrast and readable fonts
 
-## 📈 Version History
+## 📈 Development
 
-### Version 2.0.0 (Current)
-- Professional black background design
-- Complete feature integration
-- Enhanced build system with color coding
-- Comprehensive settings menu
-- Factory reset capability
-- Multiple color theme support
-- Improved error handling and user feedback
+### Architecture Overview
+- **Bootloader**: First-stage loader with setup detection
+- **Kernel**: Complete operating system kernel
+- **File System**: Custom setup flag management
+- **User Interface**: Text-based with color support
 
-### Previous Versions
-- Version 1.x: Basic functionality and core features
-- Version 0.x: Initial development and prototyping
+### Key Components
+1. **Boot Process**: Enhanced bootloader with first-boot detection
+2. **Setup System**: Comprehensive initial configuration
+3. **Authentication**: Secure user login system
+4. **Command Interface**: Professional command-line environment
+5. **Settings Management**: Complete system configuration
+
+### Code Quality
+- **Assembly Language**: Optimized x86 assembly code
+- **Error Handling**: Comprehensive error checking
+- **Documentation**: Detailed code comments
+- **Testing**: Built-in validation and verification
+
+## 📄 License
+
+OmniOS 2.0 Professional Edition - Educational and Research Use
+
+This operating system is designed for educational purposes and research into operating system development. Feel free to study, modify, and learn from the code.
 
 ## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit issues, feature requests, or pull requests.
 
 ### Development Guidelines
 1. Follow existing code style and conventions
 2. Test all changes thoroughly
-3. Update documentation for new features
-4. Ensure backward compatibility
-5. Use professional color schemes (avoid blue backgrounds)
+3. Update documentation as needed
+4. Ensure cross-platform compatibility
 
-### Reporting Issues
-1. Provide detailed error descriptions
-2. Include build environment information
-3. Attach relevant log files
-4. Specify reproduction steps
+## 📞 Support
 
-## 📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🙏 Acknowledgments
-
-- NASM Development Team for the excellent assembler
-- QEMU Project for emulation capabilities
-- Open Source Community for inspiration and support
-- Contributors and testers for feedback and improvements
+For support and questions:
+1. Check the troubleshooting section above
+2. Review the comprehensive help system (`help` command)
+3. Examine build logs and error messages
+4. Test with different configurations
 
 ---
 
-**OmniOS 2.0 Professional Edition** - A modern approach to classic computing with professional design and enhanced functionality.
+**OmniOS 2.0 Professional Edition** - A complete, modern operating system experience in 16-bit assembly language.

@@ -13,6 +13,9 @@ bootloader_start:
     mov sp, 0x7C00
     sti
     
+    ; Save boot drive
+    mov [boot_drive], dl
+    
     ; Clear screen with black background (professional look)
     mov ah, 0x06
     mov al, 0
@@ -43,8 +46,21 @@ bootloader_start:
     ; Load kernel from disk
     call load_kernel
     
-    ; Jump to kernel
-    jmp 0x0000:0x1000
+    ; Display jump message
+    mov si, jump_msg
+    call print_string
+    
+    ; Small delay to show message
+    mov cx, 0x8000
+.delay:
+    nop
+    loop .delay
+    
+    ; Jump to kernel with proper segment setup
+    mov ax, 0x1000
+    mov ds, ax
+    mov es, ax
+    jmp 0x1000:0x0000
 
 ; Check if this is the first boot
 check_first_boot:
@@ -56,14 +72,20 @@ check_first_boot:
     mov dh, 0           ; Head 0
     mov dl, [boot_drive] ; Boot drive
     mov bx, 0x600       ; Load to 0x600
-    mov es, bx
-    mov bx, 0x0000
+    push es
+    mov ax, 0x0000
+    mov es, ax
     
     int 0x13
+    pop es
     jc .first_boot      ; If read fails, assume first boot
     
     ; Check for setup completion signature
-    mov ax, [es:0x0000]
+    push ds
+    mov ax, 0x0000
+    mov ds, ax
+    mov ax, [0x600]
+    pop ds
     cmp ax, 0x4F53      ; "SO" signature (Setup Ok)
     je .not_first_boot
     
@@ -88,15 +110,16 @@ load_kernel:
     mov ah, 0x00
     mov dl, [boot_drive]
     int 0x13
+    jc disk_error
     
-    ; Load kernel (24 sectors starting from sector 1)
+    ; Load kernel (18 sectors starting from sector 2)
     mov ah, 0x02        ; Read sectors
-    mov al, 24          ; Number of sectors (12KB kernel)
+    mov al, 18          ; Number of sectors (9KB kernel)
     mov ch, 0           ; Cylinder 0
-    mov cl, 2           ; Start from sector 2 (sector 1 is first data sector)
+    mov cl, 2           ; Start from sector 2
     mov dh, 0           ; Head 0
     mov dl, [boot_drive] ; Boot drive
-    mov bx, 0x1000      ; Load kernel to 0x1000
+    mov bx, 0x1000      ; Load kernel to 0x1000:0x0000
     mov es, bx
     mov bx, 0x0000
     
@@ -117,9 +140,7 @@ disk_error:
     int 0x16
     
     ; Reboot
-    db 0x0EA
-    dw 0x0000
-    dw 0xFFFF
+    int 0x19
 
 ; Print string function
 print_string:
@@ -150,6 +171,7 @@ first_boot_msg      db 'First boot detected - Setup will be initialized', 13, 10
 normal_boot_msg     db 'System configured - Loading user authentication', 13, 10, 0
 loading_msg         db 'Loading kernel...', 13, 10, 0
 kernel_loaded_msg   db 'Kernel loaded successfully', 13, 10, 0
+jump_msg            db 'Starting kernel...', 13, 10, 0
 disk_error_msg      db 'Disk read error! Press any key to reboot...', 13, 10, 0
 
 ; Boot drive storage

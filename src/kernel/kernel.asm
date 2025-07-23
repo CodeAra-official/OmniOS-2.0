@@ -1,26 +1,47 @@
 ; OmniOS 2.0 Enhanced Kernel with Complete Feature Set
-; Fixed color scheme - Black background instead of blue
+; Fixed kernel entry point and proper initialization
 [BITS 16]
-[ORG 0x1000]
+[ORG 0x0000]
 
-; Kernel entry point
+; Kernel entry point - must be at offset 0
 kernel_start:
-    ; Initialize segments
-    mov ax, cs
+    ; Initialize segments properly
+    cli
+    mov ax, 0x1000
     mov ds, ax
     mov es, ax
+    mov fs, ax
+    mov gs, ax
     
-    ; Set up stack
+    ; Set up stack in a safe location
     mov ax, 0x9000
     mov ss, ax
     mov sp, 0xFFFF
+    sti
     
-    ; Clear screen with black background
+    ; Clear screen with black background immediately
     call clear_screen_black
     
-    ; Check first boot flag from bootloader
+    ; Show kernel startup message
+    mov dh, 0
+    mov dl, 0
+    call set_cursor
+    mov si, kernel_start_msg
+    call print_string_green
+    
+    ; Small delay to show startup message
+    call short_delay
+    
+    ; Check first boot flag from bootloader (stored at 0x0000:0x500)
+    push ds
+    mov ax, 0x0000
+    mov ds, ax
     mov al, [0x500]
-    cmp al, 1
+    pop ds
+    mov [first_boot_flag], al
+    
+    ; Decide what to do based on first boot flag
+    cmp byte [first_boot_flag], 1
     je run_initial_setup
     
     ; Not first boot - show login screen
@@ -72,7 +93,25 @@ clear_screen_black:
     ret
 
 ; Alternative color schemes
-clear_screen_dark:
+clear_screen_green:
+    mov ah, 0x06
+    mov al, 0
+    mov bh, 0x02        ; Green text on black background
+    mov ch, 0
+    mov cl, 0
+    mov dh, 24
+    mov dl, 79
+    int 0x10
+    
+    ; Set cursor to top
+    mov ah, 0x02
+    mov bh, 0
+    mov dh, 0
+    mov dl, 0
+    int 0x10
+    ret
+
+clear_screen_high_contrast:
     mov ah, 0x06
     mov al, 0
     mov bh, 0x0F        ; White text on black background
@@ -90,22 +129,14 @@ clear_screen_dark:
     int 0x10
     ret
 
-clear_screen_green:
-    mov ah, 0x06
-    mov al, 0
-    mov bh, 0x02        ; Green text on black background
-    mov ch, 0
-    mov cl, 0
-    mov dh, 24
-    mov dl, 79
-    int 0x10
-    
-    ; Set cursor to top
-    mov ah, 0x02
-    mov bh, 0
-    mov dh, 0
-    mov dl, 0
-    int 0x10
+; Short delay function
+short_delay:
+    push cx
+    mov cx, 0x8000
+.delay_loop:
+    nop
+    loop .delay_loop
+    pop cx
     ret
 
 ; Initial Setup Screen
@@ -218,7 +249,7 @@ show_color_scheme_setup:
     
 .scheme_high_contrast:
     mov byte [color_scheme], 3
-    call clear_screen_dark
+    call clear_screen_high_contrast
     ret
 
 ; Network setup display
@@ -286,7 +317,7 @@ show_login_screen:
     jmp .continue_login
     
 .use_high_contrast:
-    call clear_screen_dark
+    call clear_screen_high_contrast
     
 .continue_login:
     ; Draw login header
@@ -359,16 +390,7 @@ show_login_screen:
     call print_string_green
     
     ; Brief pause
-    mov cx, 0x0003
-.success_delay:
-    push cx
-    mov cx, 0xFFFF
-.inner_delay:
-    nop
-    loop .inner_delay
-    pop cx
-    loop .success_delay
-    
+    call short_delay
     ret
 
 ; Verify login credentials
@@ -410,7 +432,7 @@ show_desktop:
     jmp .continue_desktop
     
 .desktop_high_contrast:
-    call clear_screen_dark
+    call clear_screen_high_contrast
     
 .continue_desktop:
     ; Desktop header with system info
@@ -760,7 +782,7 @@ show_settings_menu:
     jmp .continue_settings
     
 .settings_high_contrast:
-    call clear_screen_dark
+    call clear_screen_high_contrast
     
 .continue_settings:
     ; Settings header
@@ -904,7 +926,7 @@ show_wifi_menu:
     jmp .continue_wifi
     
 .wifi_high_contrast:
-    call clear_screen_dark
+    call clear_screen_high_contrast
     
 .continue_wifi:
     mov dh, 2
@@ -987,7 +1009,7 @@ show_users_menu:
     jmp .continue_users
     
 .users_high_contrast:
-    call clear_screen_dark
+    call clear_screen_high_contrast
     
 .continue_users:
     mov dh, 2
@@ -1052,7 +1074,7 @@ show_apps_menu:
     jmp .continue_apps
     
 .apps_high_contrast:
-    call clear_screen_dark
+    call clear_screen_high_contrast
     
 .continue_apps:
     mov dh, 2
@@ -1211,20 +1233,12 @@ factory_reset:
     call print_string_green
     
     ; Wait and reboot
-    mov cx, 0x0005
-.reset_delay:
-    push cx
-    mov cx, 0xFFFF
-.inner_delay:
-    nop
-    loop .inner_delay
-    pop cx
-    loop .reset_delay
+    call short_delay
+    call short_delay
+    call short_delay
     
     ; Reboot system
-    db 0x0EA
-    dw 0x0000
-    dw 0xFFFF
+    int 0x19
 
 .not_admin:
     mov dh, 6
@@ -1255,7 +1269,7 @@ show_reset_progress:
     
     ; Delay
     push cx
-    mov cx, 0x8000
+    mov cx, 0x4000
 .progress_delay:
     nop
     loop .progress_delay
@@ -1351,15 +1365,7 @@ logout_user:
     call print_string_yellow
     
     ; Brief delay
-    mov cx, 0x0002
-.logout_delay:
-    push cx
-    mov cx, 0xFFFF
-.inner_delay:
-    nop
-    loop .inner_delay
-    pop cx
-    loop .logout_delay
+    call short_delay
     
     ; Reset admin mode on logout
     mov byte [admin_mode], 0
@@ -1384,15 +1390,8 @@ shutdown_system:
     call print_string_white
     
     ; Brief delay
-    mov cx, 0x0003
-.shutdown_delay:
-    push cx
-    mov cx, 0xFFFF
-.inner_delay:
-    nop
-    loop .inner_delay
-    pop cx
-    loop .shutdown_delay
+    call short_delay
+    call short_delay
     
     ; Shutdown
     mov ax, 0x5307
@@ -1407,39 +1406,58 @@ shutdown_system:
 ; Mark setup as complete
 mark_setup_complete:
     ; Write setup completion flag to disk sector 20
+    push ds
+    push es
+    
+    ; Set up for disk write
+    mov ax, 0x0000
+    mov ds, ax
+    mov es, ax
+    
+    ; Prepare data at 0x600
+    mov word [0x600], 0x4F53  ; "SO" signature
+    
+    ; Write to disk
     mov ah, 0x03        ; Write sectors
     mov al, 1           ; Number of sectors
     mov ch, 0           ; Cylinder 0
     mov cl, 20          ; Sector 20
     mov dh, 0           ; Head 0
-    mov dl, [0x7C00 + 510 - 1]  ; Boot drive
-    
-    ; Prepare setup flag data
-    mov bx, 0x600
-    mov es, bx
-    mov bx, 0x0000
-    mov word [es:0x0000], 0x4F53  ; "SO" signature
+    mov dl, 0x00        ; Drive A (floppy)
+    mov bx, 0x600       ; Data location
     
     int 0x13
+    
+    pop es
+    pop ds
     ret
 
 ; Clear setup flag for factory reset
 clear_setup_flag:
-    ; Clear sector 20
+    push ds
+    push es
+    
+    ; Set up for disk write
+    mov ax, 0x0000
+    mov ds, ax
+    mov es, ax
+    
+    ; Clear data at 0x600
+    mov word [0x600], 0x0000  ; Clear signature
+    
+    ; Write to disk
     mov ah, 0x03        ; Write sectors
     mov al, 1           ; Number of sectors
     mov ch, 0           ; Cylinder 0
     mov cl, 20          ; Sector 20
     mov dh, 0           ; Head 0
-    mov dl, [0x7C00 + 510 - 1]  ; Boot drive
-    
-    ; Clear data
-    mov bx, 0x600
-    mov es, bx
-    mov bx, 0x0000
-    mov word [es:0x0000], 0x0000  ; Clear signature
+    mov dl, 0x00        ; Drive A (floppy)
+    mov bx, 0x600       ; Data location
     
     int 0x13
+    
+    pop es
+    pop ds
     ret
 
 ; Utility functions
@@ -1857,6 +1875,9 @@ clear_output_area:
     ret
 
 ; Data section
+; Kernel startup message
+kernel_start_msg    db 'OmniOS 2.0 Kernel Starting...', 13, 10, 0
+
 ; Setup messages
 setup_header        db '                    OMNIOS 2.0 INITIAL SETUP                    ', 0
 setup_step1         db 'Step 1: Create User Account', 0
@@ -1992,6 +2013,7 @@ username_prompt     db 'Username: ', 0
 password_prompt     db 'Password: ', 0
 
 ; Storage variables
+first_boot_flag     db 1
 stored_username     times 33 db 0
 stored_password     times 33 db 0
 input_username      times 33 db 0
@@ -2007,5 +2029,5 @@ box_left            db 0
 box_height          db 0
 box_width           db 0
 
-; Pad kernel to fill sectors
-times 12288-($-$$) db 0  ; 24 sectors * 512 bytes = 12288 bytes
+; Pad kernel to fill sectors (9KB = 18 sectors)
+times 9216-($-$$) db 0

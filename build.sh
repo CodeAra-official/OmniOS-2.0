@@ -85,6 +85,9 @@ check_dependencies() {
 setup_build_environment() {
     print_header "SETTING UP BUILD ENVIRONMENT"
     
+    if [ -d "$BUILD_
+    print_header "SETTING UP BUILD ENVIRONMENT"
+    
     if [ -d "$BUILD_DIR" ]; then
         print_status "Cleaning existing build directory..."
         rm -rf "$BUILD_DIR"
@@ -337,8 +340,9 @@ main() {
     
     echo ""
     print_success "Build process completed successfully!"
-    echo -e "${YELLOW}Note: The system now uses a professional black background instead of blue.${NC}"
+    echo -e "${YELLOW}Note: The system now uses a professional black background.${NC}"
     echo -e "${YELLOW}First boot will show the setup screen for initial configuration.${NC}"
+    echo -e "${YELLOW}The kernel entry point has been fixed for proper startup.${NC}"
 }
 
 # Handle script interruption
