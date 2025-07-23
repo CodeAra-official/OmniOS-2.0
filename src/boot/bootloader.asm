@@ -1,9 +1,9 @@
-; OmniOS 2.0 Enhanced Bootloader with Setup Detection
-; Detects first boot and loads appropriate kernel mode
+; OmniOS 2.0 Enhanced Bootloader with First Boot Detection
+; Professional bootloader with setup flag management
 [BITS 16]
 [ORG 0x7C00]
 
-start:
+bootloader_start:
     ; Initialize segments
     cli
     xor ax, ax
@@ -13,10 +13,10 @@ start:
     mov sp, 0x7C00
     sti
     
-    ; Clear screen with BLACK background
+    ; Clear screen with black background (professional look)
     mov ah, 0x06
     mov al, 0
-    mov bh, 0x07        ; Light gray text on BLACK background
+    mov bh, 0x07        ; Light gray text on black background
     mov ch, 0
     mov cl, 0
     mov dh, 24
@@ -30,128 +30,131 @@ start:
     mov dl, 0
     int 0x10
     
-    ; Display enhanced boot message
+    ; Display boot message
     mov si, boot_msg
     call print_string
     
-    ; Save boot drive
-    mov [boot_drive], dl
-    
-    ; Check for first boot
+    ; Check for first boot by reading setup flag from sector 20
     call check_first_boot
     
-    ; Load kernel
+    ; Store first boot flag at memory location 0x500 for kernel
+    mov [0x500], al
+    
+    ; Load kernel from disk
     call load_kernel
     
-    ; Pass first boot flag to kernel
-    mov al, [first_boot_flag]
-    mov [0x500], al     ; Store at known memory location
-    
     ; Jump to kernel
-    jmp 0x1000:0x0000
+    jmp 0x0000:0x1000
 
-; Print string function with color support
-print_string:
-    pusha
-    mov ah, 0x0E
-    mov bh, 0
-    mov bl, 0x0F        ; White text
-.loop:
-    lodsb
-    cmp al, 0
-    je .done
-    int 0x10
-    jmp .loop
-.done:
-    popa
-    ret
-
-; Check if this is first boot
+; Check if this is the first boot
 check_first_boot:
-    pusha
-    
-    ; Try to read setup flag from sector 20 (after kernel)
+    ; Read sector 20 to check for setup completion flag
     mov ah, 0x02        ; Read sectors
     mov al, 1           ; Number of sectors
     mov ch, 0           ; Cylinder 0
-    mov cl, 20          ; Sector 20 (setup data)
+    mov cl, 20          ; Sector 20
     mov dh, 0           ; Head 0
-    mov dl, [boot_drive]
-    mov bx, 0x600       ; Load to temporary location
+    mov dl, [boot_drive] ; Boot drive
+    mov bx, 0x600       ; Load to 0x600
     mov es, bx
     mov bx, 0x0000
+    
     int 0x13
     jc .first_boot      ; If read fails, assume first boot
     
-    ; Check setup signature
-    mov ax, 0x600
-    mov es, ax
-    cmp word [es:0x0000], 0x4F53  ; "SO" signature (Setup Ok)
-    jne .first_boot
-    
-    ; Setup exists, not first boot
-    mov byte [first_boot_flag], 0
-    mov si, returning_user_msg
-    call print_string
-    jmp .done
+    ; Check for setup completion signature
+    mov ax, [es:0x0000]
+    cmp ax, 0x4F53      ; "SO" signature (Setup Ok)
+    je .not_first_boot
     
 .first_boot:
-    mov byte [first_boot_flag], 1
+    mov al, 1           ; First boot flag
     mov si, first_boot_msg
     call print_string
-    
-.done:
-    popa
+    ret
+
+.not_first_boot:
+    mov al, 0           ; Not first boot
+    mov si, normal_boot_msg
+    call print_string
     ret
 
 ; Load kernel from disk
 load_kernel:
-    pusha
-    
     mov si, loading_msg
     call print_string
     
-    ; Reset disk
+    ; Reset disk system
     mov ah, 0x00
     mov dl, [boot_drive]
     int 0x13
     
-    ; Load kernel (sectors 2-19)
+    ; Load kernel (24 sectors starting from sector 1)
     mov ah, 0x02        ; Read sectors
-    mov al, 18          ; Number of sectors to read
+    mov al, 24          ; Number of sectors (12KB kernel)
     mov ch, 0           ; Cylinder 0
-    mov cl, 2           ; Start sector 2
+    mov cl, 2           ; Start from sector 2 (sector 1 is first data sector)
     mov dh, 0           ; Head 0
-    mov dl, [boot_drive]
-    mov bx, 0x1000      ; Load to 0x1000:0x0000
+    mov dl, [boot_drive] ; Boot drive
+    mov bx, 0x1000      ; Load kernel to 0x1000
     mov es, bx
     mov bx, 0x0000
+    
     int 0x13
     jc disk_error
     
-    mov si, success_msg
+    mov si, kernel_loaded_msg
     call print_string
-    
-    popa
     ret
 
+; Handle disk read error
 disk_error:
-    mov si, error_msg
+    mov si, disk_error_msg
     call print_string
-    cli
-    hlt
+    
+    ; Wait for key press
+    mov ah, 0x00
+    int 0x16
+    
+    ; Reboot
+    db 0x0EA
+    dw 0x0000
+    dw 0xFFFF
 
-; Data
-boot_msg         db 'OmniOS 2.0 Enhanced Edition Loading...', 0x0D, 0x0A, 0
-first_boot_msg   db 'First boot detected - Setup will run', 0x0D, 0x0A, 0
-returning_user_msg db 'Welcome back to OmniOS 2.0', 0x0D, 0x0A, 0
-loading_msg      db 'Loading Enhanced Kernel...', 0x0D, 0x0A, 0
-success_msg      db 'Kernel loaded successfully!', 0x0D, 0x0A, 0
-error_msg        db 'Boot Error - System Halted!', 0x0D, 0x0A, 0
+; Print string function
+print_string:
+    push ax
+    push bx
+    
+.print_loop:
+    lodsb
+    cmp al, 0
+    je .done
+    
+    ; Print character with color
+    mov ah, 0x0E
+    mov bh, 0
+    mov bl, 0x0F        ; White text
+    int 0x10
+    
+    jmp .print_loop
 
-boot_drive       db 0
-first_boot_flag  db 1
+.done:
+    pop bx
+    pop ax
+    ret
 
-; Boot signature
+; Boot messages
+boot_msg            db 'OmniOS 2.0 Professional Edition Bootloader', 13, 10, 0
+first_boot_msg      db 'First boot detected - Setup will be initialized', 13, 10, 0
+normal_boot_msg     db 'System configured - Loading user authentication', 13, 10, 0
+loading_msg         db 'Loading kernel...', 13, 10, 0
+kernel_loaded_msg   db 'Kernel loaded successfully', 13, 10, 0
+disk_error_msg      db 'Disk read error! Press any key to reboot...', 13, 10, 0
+
+; Boot drive storage
+boot_drive          db 0
+
+; Boot sector signature
 times 510-($-$$) db 0
 dw 0xAA55

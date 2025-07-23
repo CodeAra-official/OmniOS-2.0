@@ -1,5 +1,5 @@
 ; OmniOS 2.0 Enhanced Kernel with Complete Feature Set
-; Includes setup system, authentication, settings, and all commands
+; Fixed color scheme - Black background instead of blue
 [BITS 16]
 [ORG 0x1000]
 
@@ -15,8 +15,8 @@ kernel_start:
     mov ss, ax
     mov sp, 0xFFFF
     
-    ; Clear screen with professional blue background
-    call clear_screen_blue
+    ; Clear screen with black background
+    call clear_screen_black
     
     ; Check first boot flag from bootloader
     mov al, [0x500]
@@ -52,11 +52,48 @@ command_loop:
     
     jmp command_loop
 
-; Clear screen with professional blue background
-clear_screen_blue:
+; Clear screen with black background (professional look)
+clear_screen_black:
     mov ah, 0x06
     mov al, 0
-    mov bh, 0x17        ; White text on blue background
+    mov bh, 0x07        ; Light gray text on black background
+    mov ch, 0
+    mov cl, 0
+    mov dh, 24
+    mov dl, 79
+    int 0x10
+    
+    ; Set cursor to top
+    mov ah, 0x02
+    mov bh, 0
+    mov dh, 0
+    mov dl, 0
+    int 0x10
+    ret
+
+; Alternative color schemes
+clear_screen_dark:
+    mov ah, 0x06
+    mov al, 0
+    mov bh, 0x0F        ; White text on black background
+    mov ch, 0
+    mov cl, 0
+    mov dh, 24
+    mov dl, 79
+    int 0x10
+    
+    ; Set cursor to top
+    mov ah, 0x02
+    mov bh, 0
+    mov dh, 0
+    mov dl, 0
+    int 0x10
+    ret
+
+clear_screen_green:
+    mov ah, 0x06
+    mov al, 0
+    mov bh, 0x02        ; Green text on black background
     mov ch, 0
     mov cl, 0
     mov dh, 24
@@ -73,14 +110,14 @@ clear_screen_blue:
 
 ; Initial Setup Screen
 show_setup_screen:
-    call clear_screen_blue
+    call clear_screen_black
     
-    ; Draw setup header
+    ; Draw setup header with green accent
     mov dh, 2
     mov dl, 15
     call set_cursor
     mov si, setup_header
-    call print_string_white
+    call print_string_green
     
     ; Draw setup box
     mov dh, 4
@@ -94,7 +131,7 @@ show_setup_screen:
     mov dl, 12
     call set_cursor
     mov si, setup_step1
-    call print_string_yellow
+    call print_string_cyan
     
     ; Get username
     mov dh, 8
@@ -123,9 +160,18 @@ show_setup_screen:
     mov dl, 12
     call set_cursor
     mov si, setup_step2
-    call print_string_yellow
+    call print_string_cyan
     
     call show_network_setup
+    
+    ; Step 3: Color Scheme Selection
+    mov dh, 16
+    mov dl, 12
+    call set_cursor
+    mov si, setup_step3
+    call print_string_cyan
+    
+    call show_color_scheme_setup
     
     ; Setup complete message
     mov dh, 18
@@ -138,6 +184,41 @@ show_setup_screen:
     mov ah, 0x00
     int 0x16
     
+    ret
+
+; Color scheme setup
+show_color_scheme_setup:
+    mov dh, 17
+    mov dl, 12
+    call set_cursor
+    mov si, color_scheme_prompt
+    call print_string_white
+    
+    ; Wait for selection
+    mov ah, 0x00
+    int 0x16
+    
+    ; Store color scheme choice
+    cmp al, '1'
+    je .scheme_default
+    cmp al, '2'
+    je .scheme_green
+    cmp al, '3'
+    je .scheme_high_contrast
+    
+    ; Default to scheme 1
+.scheme_default:
+    mov byte [color_scheme], 1
+    ret
+    
+.scheme_green:
+    mov byte [color_scheme], 2
+    call clear_screen_green
+    ret
+    
+.scheme_high_contrast:
+    mov byte [color_scheme], 3
+    call clear_screen_dark
     ret
 
 ; Network setup display
@@ -162,28 +243,58 @@ show_network_setup:
 
 ; Simulate network scanning
 simulate_network_scan:
-    ; Simple delay simulation
-    mov cx, 0x0005
-.delay_loop:
+    ; Simple delay simulation with dots
+    mov cx, 3
+.scan_loop:
+    mov ah, 0x0E
+    mov al, '.'
+    int 0x10
+    
+    ; Delay
     push cx
-    mov cx, 0xFFFF
-.inner_delay:
+    mov cx, 0x8000
+.delay_loop:
     nop
-    loop .inner_delay
-    pop cx
     loop .delay_loop
+    pop cx
+    
+    loop .scan_loop
+    
+    ; New line
+    mov ah, 0x0E
+    mov al, 13
+    int 0x10
+    mov al, 10
+    int 0x10
+    
     ret
 
 ; Login Screen
 show_login_screen:
-    call clear_screen_blue
+    ; Apply selected color scheme
+    cmp byte [color_scheme], 2
+    je .use_green
+    cmp byte [color_scheme], 3
+    je .use_high_contrast
     
+    ; Default black scheme
+    call clear_screen_black
+    jmp .continue_login
+    
+.use_green:
+    call clear_screen_green
+    jmp .continue_login
+    
+.use_high_contrast:
+    call clear_screen_dark
+    
+.continue_login:
     ; Draw login header
     mov dh, 8
     mov dl, 30
     call set_cursor
     mov si, login_header
-    call print_string_white
+    call print_string_green
     
     ; Draw login box
     mov dh, 10
@@ -230,6 +341,14 @@ show_login_screen:
     ; Wait and try again
     mov ah, 0x00
     int 0x16
+    
+    ; Clear error message
+    mov dh, 16
+    mov dl, 22
+    call set_cursor
+    mov si, clear_line
+    call print_string_white
+    
     jmp .login_loop
 
 .login_success:
@@ -277,14 +396,29 @@ verify_login:
 
 ; Show desktop environment
 show_desktop:
-    call clear_screen_blue
+    ; Apply color scheme
+    cmp byte [color_scheme], 2
+    je .desktop_green
+    cmp byte [color_scheme], 3
+    je .desktop_high_contrast
     
-    ; Desktop header
+    call clear_screen_black
+    jmp .continue_desktop
+    
+.desktop_green:
+    call clear_screen_green
+    jmp .continue_desktop
+    
+.desktop_high_contrast:
+    call clear_screen_dark
+    
+.continue_desktop:
+    ; Desktop header with system info
     mov dh, 0
     mov dl, 0
     call set_cursor
     mov si, desktop_header
-    call print_string_white
+    call print_string_green
     
     ; Welcome message
     mov dh, 2
@@ -294,7 +428,7 @@ show_desktop:
     call print_string_white
     
     mov si, stored_username
-    call print_string_yellow
+    call print_string_cyan
     
     mov si, welcome_msg2
     call print_string_white
@@ -306,6 +440,13 @@ show_desktop:
     mov si, system_ready_msg
     call print_string_green
     
+    ; Show system status
+    mov dh, 5
+    mov dl, 2
+    call set_cursor
+    mov si, system_status
+    call print_string_white
+    
     ret
 
 ; Show command prompt
@@ -316,7 +457,7 @@ show_prompt:
     
     ; Show username
     mov si, stored_username
-    call print_string_yellow
+    call print_string_cyan
     
     ; Show admin indicator if in admin mode
     cmp byte [admin_mode], 1
@@ -408,6 +549,12 @@ process_command:
     cmp al, 1
     je .cmd_version
     
+    ; Theme command
+    mov di, cmd_theme
+    call compare_strings
+    cmp al, 1
+    je .cmd_theme
+    
     ; Logout command
     mov di, cmd_logout
     call compare_strings
@@ -464,6 +611,10 @@ process_command:
     call show_version_info
     jmp .end_process
 
+.cmd_theme:
+    call change_theme
+    jmp .end_process
+
 .cmd_logout:
     call logout_user
     jmp .end_process
@@ -483,48 +634,141 @@ show_help_menu:
     mov si, help_header
     call print_string_cyan
     
-    mov dh, 7
-    mov dl, 2
-    call set_cursor
-    mov si, help_basic
-    call print_string_white
-    
     mov dh, 8
     mov dl, 2
     call set_cursor
-    mov si, help_system
-    call print_string_white
+    mov si, help_basic_header
+    call print_string_yellow
     
     mov dh, 9
-    mov dl, 2
+    mov dl, 4
     call set_cursor
-    mov si, help_network
-    call print_string_white
-    
-    mov dh, 10
-    mov dl, 2
-    call set_cursor
-    mov si, help_admin
+    mov si, help_basic_commands
     call print_string_white
     
     mov dh, 11
     mov dl, 2
     call set_cursor
-    mov si, help_note
+    mov si, help_system_header
     call print_string_yellow
     
+    mov dh, 12
+    mov dl, 4
+    call set_cursor
+    mov si, help_system_commands
+    call print_string_white
+    
+    mov dh, 14
+    mov dl, 2
+    call set_cursor
+    mov si, help_network_header
+    call print_string_yellow
+    
+    mov dh, 15
+    mov dl, 4
+    call set_cursor
+    mov si, help_network_commands
+    call print_string_white
+    
+    mov dh, 17
+    mov dl, 2
+    call set_cursor
+    mov si, help_admin_header
+    call print_string_yellow
+    
+    mov dh, 18
+    mov dl, 4
+    call set_cursor
+    mov si, help_admin_commands
+    call print_string_white
+    
+    mov dh, 20
+    mov dl, 2
+    call set_cursor
+    mov si, help_note
+    call print_string_green
+    
+    ret
+
+; Theme change command
+change_theme:
+    mov dh, 6
+    mov dl, 2
+    call set_cursor
+    mov si, theme_header
+    call print_string_cyan
+    
+    mov dh, 8
+    mov dl, 2
+    call set_cursor
+    mov si, theme_options
+    call print_string_white
+    
+    mov dh, 12
+    mov dl, 2
+    call set_cursor
+    mov si, theme_prompt
+    call print_string_yellow
+    
+    ; Get theme selection
+    mov ah, 0x00
+    int 0x16
+    
+    cmp al, '1'
+    je .theme_default
+    cmp al, '2'
+    je .theme_green
+    cmp al, '3'
+    je .theme_high_contrast
+    
+    ; Invalid selection
+    mov dh, 14
+    mov dl, 2
+    call set_cursor
+    mov si, invalid_theme_msg
+    call print_string_red
+    ret
+
+.theme_default:
+    mov byte [color_scheme], 1
+    call show_desktop
+    ret
+
+.theme_green:
+    mov byte [color_scheme], 2
+    call show_desktop
+    ret
+
+.theme_high_contrast:
+    mov byte [color_scheme], 3
+    call show_desktop
     ret
 
 ; Show settings menu
 show_settings_menu:
-    call clear_screen_blue
+    ; Apply current color scheme
+    cmp byte [color_scheme], 2
+    je .settings_green
+    cmp byte [color_scheme], 3
+    je .settings_high_contrast
     
+    call clear_screen_black
+    jmp .continue_settings
+    
+.settings_green:
+    call clear_screen_green
+    jmp .continue_settings
+    
+.settings_high_contrast:
+    call clear_screen_dark
+    
+.continue_settings:
     ; Settings header
     mov dh, 2
     mov dl, 25
     call set_cursor
     mov si, settings_header
-    call print_string_white
+    call print_string_green
     
     ; Draw settings box
     mov dh, 4
@@ -567,6 +811,12 @@ show_settings_menu:
     mov dh, 16
     mov dl, 17
     call set_cursor
+    mov si, settings_option6
+    call print_string_white
+    
+    mov dh, 17
+    mov dl, 17
+    call set_cursor
     mov si, settings_option0
     call print_string_yellow
     
@@ -591,6 +841,8 @@ show_settings_menu:
     cmp al, '4'
     je .admin_toggle
     cmp al, '5'
+    je .theme_change
+    cmp al, '6'
     je .factory_reset
     cmp al, '0'
     je .back_to_desktop
@@ -624,6 +876,10 @@ show_settings_menu:
     call toggle_admin_mode
     ret
 
+.theme_change:
+    call change_theme
+    ret
+
 .factory_reset:
     call factory_reset
     ret
@@ -634,16 +890,41 @@ show_settings_menu:
 
 ; WiFi configuration menu
 show_wifi_menu:
-    call clear_screen_blue
+    ; Apply current color scheme
+    cmp byte [color_scheme], 2
+    je .wifi_green
+    cmp byte [color_scheme], 3
+    je .wifi_high_contrast
     
+    call clear_screen_black
+    jmp .continue_wifi
+    
+.wifi_green:
+    call clear_screen_green
+    jmp .continue_wifi
+    
+.wifi_high_contrast:
+    call clear_screen_dark
+    
+.continue_wifi:
     mov dh, 2
     mov dl, 25
     call set_cursor
     mov si, wifi_header
+    call print_string_green
+    
+    ; Show current status
+    mov dh, 5
+    mov dl, 10
+    call set_cursor
+    mov si, wifi_status_msg
     call print_string_white
     
+    mov si, wifi_current_status
+    call print_string_cyan
+    
     ; Show scanning message
-    mov dh, 6
+    mov dh, 7
     mov dl, 10
     call set_cursor
     mov si, wifi_scanning_msg
@@ -653,11 +934,35 @@ show_wifi_menu:
     call simulate_network_scan
     
     ; Show networks
-    mov dh, 8
+    mov dh, 9
     mov dl, 10
     call set_cursor
-    mov si, wifi_networks
+    mov si, wifi_networks_header
     call print_string_white
+    
+    mov dh, 11
+    mov dl, 12
+    call set_cursor
+    mov si, wifi_network_1
+    call print_string_white
+    
+    mov dh, 12
+    mov dl, 12
+    call set_cursor
+    mov si, wifi_network_2
+    call print_string_white
+    
+    mov dh, 13
+    mov dl, 12
+    call set_cursor
+    mov si, wifi_network_3
+    call print_string_white
+    
+    mov dh, 15
+    mov dl, 10
+    call set_cursor
+    mov si, wifi_connect_prompt
+    call print_string_yellow
     
     ; Wait for user input
     mov ah, 0x00
@@ -668,13 +973,28 @@ show_wifi_menu:
 
 ; User management menu
 show_users_menu:
-    call clear_screen_blue
+    ; Apply current color scheme
+    cmp byte [color_scheme], 2
+    je .users_green
+    cmp byte [color_scheme], 3
+    je .users_high_contrast
     
+    call clear_screen_black
+    jmp .continue_users
+    
+.users_green:
+    call clear_screen_green
+    jmp .continue_users
+    
+.users_high_contrast:
+    call clear_screen_dark
+    
+.continue_users:
     mov dh, 2
     mov dl, 25
     call set_cursor
     mov si, users_header
-    call print_string_white
+    call print_string_green
     
     mov dh, 6
     mov dl, 10
@@ -683,9 +1003,27 @@ show_users_menu:
     call print_string_white
     
     mov si, stored_username
-    call print_string_yellow
+    call print_string_cyan
     
     mov dh, 8
+    mov dl, 10
+    call set_cursor
+    mov si, users_admin_status
+    call print_string_white
+    
+    cmp byte [admin_mode], 1
+    je .show_admin_yes
+    
+    mov si, admin_status_no
+    call print_string_red
+    jmp .continue_user_menu
+    
+.show_admin_yes:
+    mov si, admin_status_yes
+    call print_string_green
+    
+.continue_user_menu:
+    mov dh, 10
     mov dl, 10
     call set_cursor
     mov si, users_options
@@ -700,13 +1038,28 @@ show_users_menu:
 
 ; Application management menu
 show_apps_menu:
-    call clear_screen_blue
+    ; Apply current color scheme
+    cmp byte [color_scheme], 2
+    je .apps_green
+    cmp byte [color_scheme], 3
+    je .apps_high_contrast
     
+    call clear_screen_black
+    jmp .continue_apps
+    
+.apps_green:
+    call clear_screen_green
+    jmp .continue_apps
+    
+.apps_high_contrast:
+    call clear_screen_dark
+    
+.continue_apps:
     mov dh, 2
     mov dl, 25
     call set_cursor
     mov si, apps_header
-    call print_string_white
+    call print_string_green
     
     mov dh, 6
     mov dl, 10
@@ -715,10 +1068,34 @@ show_apps_menu:
     call print_string_white
     
     mov dh, 8
+    mov dl, 12
+    call set_cursor
+    mov si, app_system_tools
+    call print_string_white
+    
+    mov dh, 9
+    mov dl, 12
+    call set_cursor
+    mov si, app_network_manager
+    call print_string_white
+    
+    mov dh, 10
+    mov dl, 12
+    call set_cursor
+    mov si, app_text_editor
+    call print_string_white
+    
+    mov dh, 11
+    mov dl, 12
+    call set_cursor
+    mov si, app_settings
+    call print_string_white
+    
+    mov dh, 13
     mov dl, 10
     call set_cursor
-    mov si, apps_list
-    call print_string_white
+    mov si, apps_management_options
+    call print_string_yellow
     
     ; Wait for user input
     mov ah, 0x00
@@ -752,7 +1129,7 @@ toggle_admin_mode:
     
     ; Enable admin mode
     mov byte [admin_mode], 1
-    mov dh, 7
+    mov dh, 8
     mov dl, 2
     call set_cursor
     mov si, admin_enabled_msg
@@ -770,7 +1147,7 @@ toggle_admin_mode:
     ret
 
 .admin_fail:
-    mov dh, 7
+    mov dh, 8
     mov dl, 2
     call set_cursor
     mov si, admin_fail_msg
@@ -804,7 +1181,7 @@ factory_reset:
     cmp al, 'y'
     je .do_reset
     
-    mov dh, 9
+    mov dh, 10
     mov dl, 2
     call set_cursor
     mov si, factory_cancelled
@@ -812,17 +1189,22 @@ factory_reset:
     ret
 
 .do_reset:
-    mov dh, 9
+    mov dh, 10
     mov dl, 2
     call set_cursor
     mov si, factory_resetting
     call print_string_red
     
+    ; Show progress
+    call show_reset_progress
+    
     ; Clear setup flag to force setup on next boot
     call clear_setup_flag
     
-    ; Reset system
-    mov dh, 10
+    ; Reset system variables
+    call reset_system_variables
+    
+    mov dh, 15
     mov dl, 2
     call set_cursor
     mov si, factory_complete
@@ -852,6 +1234,59 @@ factory_reset:
     call print_string_red
     ret
 
+; Show factory reset progress
+show_reset_progress:
+    mov dh, 12
+    mov dl, 2
+    call set_cursor
+    mov si, reset_progress_msg
+    call print_string_white
+    
+    ; Show progress bar
+    mov cx, 20
+    mov dl, 2
+    inc dh
+    
+.progress_loop:
+    call set_cursor
+    mov ah, 0x0E
+    mov al, 0xDB  ; Block character
+    int 0x10
+    
+    ; Delay
+    push cx
+    mov cx, 0x8000
+.progress_delay:
+    nop
+    loop .progress_delay
+    pop cx
+    
+    inc dl
+    loop .progress_loop
+    
+    ret
+
+; Reset system variables
+reset_system_variables:
+    ; Clear stored credentials
+    mov di, stored_username
+    mov cx, 33
+    mov al, 0
+    rep stosb
+    
+    mov di, stored_password
+    mov cx, 33
+    mov al, 0
+    rep stosb
+    
+    ; Reset admin mode
+    mov byte [admin_mode], 0
+    
+    ; Reset color scheme
+    mov byte [color_scheme], 1
+    
+    ret
+
 ; Show version information
 show_version_info:
     mov dh, 6
@@ -860,18 +1295,51 @@ show_version_info:
     mov si, version_header
     call print_string_cyan
     
-    mov dh, 7
+    mov dh, 8
     mov dl, 2
     call set_cursor
     mov si, version_info
     call print_string_white
     
-    mov dh, 8
+    mov dh, 9
+    mov dl, 2
+    call set_cursor
+    mov si, version_build
+    call print_string_white
+    
+    mov dh, 10
     mov dl, 2
     call set_cursor
     mov si, version_features
     call print_string_green
     
+    mov dh, 12
+    mov dl, 2
+    call set_cursor
+    mov si, version_color_scheme
+    call print_string_white
+    
+    ; Show current color scheme
+    cmp byte [color_scheme], 1
+    je .show_scheme_default
+    cmp byte [color_scheme], 2
+    je .show_scheme_green
+    cmp byte [color_scheme], 3
+    je .show_scheme_high_contrast
+    
+.show_scheme_default:
+    mov si, scheme_name_default
+    call print_string_cyan
+    ret
+    
+.show_scheme_green:
+    mov si, scheme_name_green
+    call print_string_green
+    ret
+    
+.show_scheme_high_contrast:
+    mov si, scheme_name_high_contrast
+    call print_string_white
     ret
 
 ; Logout user
@@ -893,6 +1361,9 @@ logout_user:
     pop cx
     loop .logout_delay
     
+    ; Reset admin mode on logout
+    mov byte [admin_mode], 0
+    
     ; Return to login screen
     call show_login_screen
     jmp main_loop
@@ -904,6 +1375,13 @@ shutdown_system:
     call set_cursor
     mov si, shutdown_msg
     call print_string_yellow
+    
+    ; Show shutdown progress
+    mov dh, 8
+    mov dl, 2
+    call set_cursor
+    mov si, shutdown_progress
+    call print_string_white
     
     ; Brief delay
     mov cx, 0x0003
@@ -1060,14 +1538,8 @@ draw_box:
     mov cx, 1
     int 0x10
     
-    dec byte [box_width]
-    cmp byte [box_width], 2
-    jg .top_line
-    
-    ; Restore width
-    mov cl, [box_width]
-    add cl, 2
-    mov [box_width], cl
+    dec cl
+    jnz .top_line
     
     ; Top-right corner
     mov ah, 0x03
@@ -1366,7 +1838,6 @@ clear_output_area:
     mov dh, 6
     mov dl, 0
     mov ch, 17
-    mov cl, 80
     
 .clear_loop:
     call set_cursor
@@ -1387,23 +1858,26 @@ clear_output_area:
 
 ; Data section
 ; Setup messages
-setup_header        db '                    INITIAL SETUP                    ', 0
+setup_header        db '                    OMNIOS 2.0 INITIAL SETUP                    ', 0
 setup_step1         db 'Step 1: Create User Account', 0
 setup_step2         db 'Step 2: Network Configuration', 0
+setup_step3         db 'Step 3: Color Scheme Selection', 0
 setup_complete_msg  db 'Setup Complete! Press any key to continue...', 0
-network_scan_msg    db 'Scanning for available networks...', 0
+network_scan_msg    db 'Scanning for available networks', 0
 network_list        db '1. OmniNet-5G (Secured)  2. HomeWiFi (Secured)  3. Skip', 0
+color_scheme_prompt db 'Select color scheme: 1=Default 2=Green 3=High Contrast', 0
 
 ; Login messages
-login_header        db '                        LOGIN                        ', 0
+login_header        db '                        OMNIOS 2.0 LOGIN                        ', 0
 login_failed_msg    db 'Login failed! Press any key to try again...', 0
 login_success_msg   db 'Login successful! Welcome to OmniOS 2.0', 0
 
 ; Desktop messages
-desktop_header      db '                    OmniOS 2.0 Desktop Environment                    ', 0
+desktop_header      db '                    OMNIOS 2.0 DESKTOP ENVIRONMENT                    ', 0
 welcome_msg         db 'Welcome back, ', 0
 welcome_msg2        db '!', 0
 system_ready_msg    db 'System ready. Type "help" for available commands.', 0
+system_status       db 'Status: All systems operational | Memory: 640KB | Color: Professional', 0
 
 ; Prompt
 prompt_symbol       db '> ', 0
@@ -1419,66 +1893,99 @@ cmd_apps            db 'apps', 0
 cmd_factory         db 'factory', 0
 cmd_clear           db 'clear', 0
 cmd_version         db 'version', 0
+cmd_theme           db 'theme', 0
 cmd_logout          db 'logout', 0
 cmd_exit            db 'exit', 0
 
 ; Help messages
-help_header         db 'OmniOS 2.0 Enhanced Command Reference:', 0
-help_basic          db 'Basic: help clear version logout exit', 0
-help_system         db 'System: settings admin users apps', 0
-help_network        db 'Network: wifi', 0
-help_admin          db 'Admin: factory (requires admin mode)', 0
+help_header         db 'OMNIOS 2.0 ENHANCED COMMAND REFERENCE:', 0
+help_basic_header   db 'Basic Commands:', 0
+help_basic_commands db 'help, clear, version, theme, logout, exit', 0
+help_system_header  db 'System Commands:', 0
+help_system_commands db 'settings, admin, users, apps', 0
+help_network_header db 'Network Commands:', 0
+help_network_commands db 'wifi', 0
+help_admin_header   db 'Admin Commands (requires admin mode):', 0
+help_admin_commands db 'factory', 0
 help_note           db 'Use "settings" for comprehensive configuration menu', 0
 
+; Theme messages
+theme_header        db 'COLOR SCHEME SELECTION:', 0
+theme_options       db '1. Default (Black/White) - Professional look', 13, 10, '2. Matrix (Black/Green) - Retro terminal style', 13, 10, '3. High Contrast (Black/White) - Maximum readability', 0
+theme_prompt        db 'Select theme (1-3): ', 0
+invalid_theme_msg   db 'Invalid selection! Please choose 1, 2, or 3.', 0
+
 ; Settings messages
-settings_header     db '                       SETTINGS                       ', 0
+settings_header     db '                       SYSTEM SETTINGS                       ', 0
 settings_option1    db '1. WiFi Configuration', 0
 settings_option2    db '2. User Management', 0
 settings_option3    db '3. Application Management', 0
 settings_option4    db '4. Admin Mode Toggle', 0
-settings_option5    db '5. Factory Reset', 0
+settings_option5    db '5. Color Theme Selection', 0
+settings_option6    db '6. Factory Reset', 0
 settings_option0    db '0. Back to Desktop', 0
-choice_prompt       db 'Select option (0-5): ', 0
+choice_prompt       db 'Select option (0-6): ', 0
 invalid_choice_msg  db 'Invalid choice! Press any key...', 0
 
 ; WiFi messages
 wifi_header         db '                   WIFI CONFIGURATION                   ', 0
-wifi_scanning_msg   db 'Scanning for networks...', 0
-wifi_networks       db '1. OmniNet-5G (90%)  2. HomeWiFi (75%)  3. PublicNet (45%)', 0
+wifi_status_msg     db 'Current status: ', 0
+wifi_current_status db 'Not connected', 0
+wifi_scanning_msg   db 'Scanning for networks', 0
+wifi_networks_header db 'Available networks:', 0
+wifi_network_1      db '1. OmniNet-5G (Signal: 90%) [Secured]', 0
+wifi_network_2      db '2. HomeWiFi (Signal: 75%) [Secured]', 0
+wifi_network_3      db '3. PublicNet (Signal: 45%) [Open]', 0
+wifi_connect_prompt db 'Select network to connect (1-3) or press any key to exit: ', 0
 
 ; User management messages
 users_header        db '                   USER MANAGEMENT                   ', 0
 users_current       db 'Current user: ', 0
-users_options       db 'Options: Change password, Create user, Delete user', 0
+users_admin_status  db 'Admin status: ', 0
+admin_status_yes    db 'ENABLED', 0
+admin_status_no     db 'DISABLED', 0
+users_options       db 'Options: Change password, User settings, Account management', 0
 
 ; Application management messages
 apps_header         db '                APPLICATION MANAGEMENT                ', 0
 apps_installed      db 'Installed applications:', 0
-apps_list           db 'System Tools, Network Manager, Text Editor', 0
+app_system_tools    db '- System Tools (Settings, Admin, Network)', 0
+app_network_manager db '- Network Manager (WiFi, Connections)', 0
+app_text_editor     db '- Text Editor (Basic text editing)', 0
+app_settings        db '- Settings Manager (System configuration)', 0
+apps_management_options db 'Management: Install, Remove, Configure applications', 0
 
 ; Admin messages
 admin_password_prompt db 'Enter admin password: ', 0
-admin_enabled_msg   db 'Administrator mode ENABLED', 0
-admin_disabled_msg  db 'Administrator mode DISABLED', 0
-admin_fail_msg      db 'Incorrect password!', 0
-admin_required_msg  db 'Administrator privileges required!', 0
+admin_enabled_msg   db 'Administrator mode ENABLED - Full system access granted', 0
+admin_disabled_msg  db 'Administrator mode DISABLED - Standard user access', 0
+admin_fail_msg      db 'Incorrect password! Access denied.', 0
+admin_required_msg  db 'Administrator privileges required for this operation!', 0
 
 ; Factory reset messages
 factory_warning     db 'WARNING: This will erase ALL data and reset to factory defaults!', 0
-factory_confirm     db 'Type Y to confirm factory reset: ', 0
-factory_cancelled   db 'Factory reset cancelled.', 0
-factory_resetting   db 'Performing factory reset...', 0
-factory_complete    db 'Factory reset complete. System will restart.', 0
+factory_confirm     db 'Type Y to confirm factory reset (any other key cancels): ', 0
+factory_cancelled   db 'Factory reset cancelled - No changes made.', 0
+factory_resetting   db 'Performing factory reset - DO NOT POWER OFF!', 0
+reset_progress_msg  db 'Progress: ', 0
+factory_complete    db 'Factory reset complete. System will restart in 3 seconds.', 0
 
 ; Version messages
-version_header      db 'OmniOS 2.0 Enhanced Professional Edition', 0
-version_info        db 'Version: 2.0.0 Build 2025.01.23', 0
-version_features    db 'Features: Setup, Authentication, Settings, Admin Mode, Factory Reset', 0
+version_header      db 'OMNIOS 2.0 ENHANCED PROFESSIONAL EDITION', 0
+version_info        db 'Version: 2.0.0 Professional', 0
+version_build       db 'Build: 2025.01.23 | Architecture: x86 16-bit Real Mode', 0
+version_features    db 'Features: Setup, Authentication, Settings, Admin, Themes, Factory Reset', 0
+version_color_scheme db 'Current color scheme: ', 0
+scheme_name_default db 'Default (Professional Black)', 0
+scheme_name_green   db 'Matrix (Terminal Green)', 0
+scheme_name_high_contrast db 'High Contrast (Maximum Readability)', 0
 
 ; System messages
-logout_msg          db 'Logging out...', 0
-shutdown_msg        db 'Shutting down system...', 0
+logout_msg          db 'Logging out... Returning to login screen.', 0
+shutdown_msg        db 'Shutting down system... Please wait.', 0
+shutdown_progress   db 'Saving system state and powering down...', 0
 unknown_cmd_msg     db 'Unknown command. Type "help" for available commands.', 0
+clear_line          db '                                                                                ', 0
 
 ; Input prompts
 username_prompt     db 'Username: ', 0
@@ -1492,6 +1999,7 @@ input_password      times 33 db 0
 temp_password       times 33 db 0
 command_buffer      times 256 db 0
 admin_mode          db 0
+color_scheme        db 1  ; 1=Default, 2=Green, 3=High Contrast
 
 ; Box drawing variables
 box_top             db 0
@@ -1500,4 +2008,4 @@ box_height          db 0
 box_width           db 0
 
 ; Pad kernel to fill sectors
-times 9216-($-$$) db 0  ; 18 sectors * 512 bytes = 9216 bytes
+times 12288-($-$$) db 0  ; 24 sectors * 512 bytes = 12288 bytes
