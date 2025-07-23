@@ -1,243 +1,449 @@
-# OmniOS 2.0 Enhanced Command Edition
+# OmniOS 2.0 Enhanced Professional Edition
 
 ## Overview
-OmniOS 2.0 Enhanced Command Edition is a professional operating system with a complete command set for modern computing needs. This edition includes 20+ commands covering file operations, media control, network functions, and system administration.
+OmniOS 2.0 Enhanced Professional Edition is a comprehensive operating system featuring an initial setup system, user authentication, network configuration, and advanced administrative tools. This edition provides a complete computing environment with professional-grade features.
 
-## Complete Command Set
+## 🚀 Enhanced Features
+
+### Initial Setup System
+- **First Boot Detection**: Automatically detects first system boot
+- **User Account Creation**: Secure username and password setup
+- **Network Configuration**: WiFi network selection and configuration
+- **Setup Completion**: Marks system as configured for subsequent boots
+
+### Authentication System
+- **Login Screen**: Professional login interface on subsequent boots
+- **Password Protection**: Secure password verification
+- **User Sessions**: Maintains user context throughout session
+- **Logout Capability**: Secure session termination
+
+### Enhanced Command System
+- **Color-Coded Output**: 
+  - 🟢 Green: Success messages
+  - 🔴 Red: Error messages and admin mode
+  - 🟡 Yellow: Warning messages
+  - 🔵 Blue: Information messages
+  - 🟣 Cyan: System headers
+- **20+ Commands**: Comprehensive command set
+- **Context-Sensitive Help**: Detailed help system
+
+### Settings Menu
+Complete system configuration interface:
+1. **WiFi Configuration**: Network scanning and connection
+2. **User Management**: User account administration
+3. **Application Management**: Software installation and removal
+4. **Admin Mode Toggle**: Elevated privileges system
+5. **Factory Reset**: Complete system reset capability
+
+### Administrative Features
+- **Admin Mode**: Elevated privileges with visual indicators
+- **System Configuration**: Advanced system settings
+- **Factory Reset**: Complete system restoration
+- **User Management**: Account creation and modification
+
+## 📋 Complete Command Reference
 
 ### Basic Commands
-- `help` - Show complete command reference
-- `ls` - List files and directories with type indicators
-- `cd <directory>` - Change directory (supports .. and /)
-- `exit` - Exit current application
-- `off` - Shutdown system safely
-
-### File Operations
-- `add <filename>` - Add new file or folder
-- `delete <filename>` - Delete file or folder (with confirmation)
-- `move <source> <dest>` - Move files/folders
-- `cut <filename>` - Cut file to clipboard
-- `copy <filename>` - Copy file to clipboard
+\`\`\`
+help        - Show comprehensive help menu
+clear       - Clear screen and refresh desktop
+version     - Show detailed system version information
+logout      - Logout current user and return to login
+exit        - Shutdown system safely
+\`\`\`
 
 ### System Commands
-- `install <package>` - Install software packages
-- `set <option>` - Configure system settings (color, time, language)
-- `admin` - Toggle administrator mode
-- `retry` - Retry last command
-- `back` - Go back/parent directory
-- `go <location>` - Navigate to specific location
-
-### Media & Network
-- `play <filename>` - Play media files
-- `stop` - Stop media playback
-- `download <url>` - Download files from internet
-
-### Applications
-- `open notepad` - Text editor with full editing capabilities
-- `open settings` - System configuration panel
-- `open files` - Advanced file manager
-- `open terminal` - Enhanced terminal mode
-
-## Features
-
-### Professional Interface
-- Blue professional theme
-- Color-coded output (green=success, red=error, yellow=warning)
-- Admin mode indicator
-- Enhanced prompts and status messages
-
-### File System
-- Directory support with proper navigation
-- File type indicators (d=directory, -=file)
-- Parent directory navigation (..)
-- Root directory support
-
-### System Administration
-- Admin mode with elevated privileges
-- System configuration management
-- Package installation system
-- Network connectivity
-
-### Built-in Applications
-- **Notepad**: Full-featured text editor
-- **Settings**: System configuration (Display, System Info, Network)
-- **File Manager**: Directory browsing and file operations
-- **Terminal**: Advanced command mode
-
-## Building and Running
-
-### Quick Start
-\`\`\`bash
-# Build and run immediately
-./build.sh --run
-
-# Or step by step
-make all
-make run
+\`\`\`
+settings    - Open comprehensive settings menu
+admin       - Toggle administrator mode (requires password)
+users       - User management interface
+apps        - Application management system
 \`\`\`
 
-### Build Requirements
-- NASM assembler
-- mtools (FAT filesystem tools)
-- QEMU (for testing)
+### Network Commands
+\`\`\`
+wifi        - WiFi configuration and management
+\`\`\`
 
-### Install Dependencies
+### Administrative Commands (Admin Mode Required)
+\`\`\`
+factory     - Factory reset system (requires confirmation)
+sysconfig   - Advanced system configuration
+\`\`\`
+
+## 🛠 Building and Installation
+
+### Prerequisites
 \`\`\`bash
 # Ubuntu/Debian
-sudo apt-get install nasm mtools qemu-system-x86
+sudo apt-get install nasm qemu-system-x86 make coreutils
 
-# Or use automated installer
-make install-deps
-\`\`\`
+# Fedora/RHEL
+sudo dnf install nasm qemu-system-x86 make coreutils
 
-## Usage Examples
-
-### Basic Navigation
-\`\`\`
-OmniOS > help                    # Show all commands
-OmniOS > ls                      # List current directory
-OmniOS > cd system              # Change to system directory
-OmniOS > cd ..                  # Go to parent directory
-OmniOS > cd /                   # Go to root directory
+# Arch Linux
+sudo pacman -S nasm qemu make coreutils
 \`\`\`
 
-### File Operations
-\`\`\`
-OmniOS > add myfile.txt         # Create new file
-OmniOS > copy myfile.txt        # Copy to clipboard
-OmniOS > delete oldfile.txt     # Delete file (with confirmation)
-OmniOS > move file.txt /system  # Move file to system directory
+### Build Options
+\`\`\`bash
+# Build and run (default)
+./build.sh
+
+# Build only
+./build.sh --build
+
+# Run only (after building)
+./build.sh --run
+
+# Check dependencies and source files
+./build.sh --check
+
+# Clean build files
+./build.sh --clean
+
+# Show build report
+./build.sh --report
+
+# Show help
+./build.sh --help
 \`\`\`
 
-### System Administration
-\`\`\`
-OmniOS > admin                  # Toggle admin mode
-[ADMIN] OmniOS > set color      # Change color scheme
-[ADMIN] OmniOS > install app    # Install new application
-[ADMIN] OmniOS > admin          # Exit admin mode
+### Alternative Build Methods
+\`\`\`bash
+# Using Makefile
+make all        # Build complete system
+make run        # Build and run
+make run-safe   # Run with fallback display modes
+make clean      # Clean build files
+
+# Direct execution scripts
+./run-safe.sh   # Safe run with multiple display fallbacks
+./run-text.sh   # Text-only mode
 \`\`\`
 
-### Media and Network
+## 🎯 First Boot Experience
+
+### Initial Setup Process
+1. **System Detection**: Bootloader detects first boot
+2. **Setup Screen**: Professional setup interface appears
+3. **User Account**: Create username and password
+4. **Network Setup**: Scan and configure WiFi networks
+5. **Completion**: System marks setup as complete
+
+### Setup Steps Detail
 \`\`\`
-OmniOS > download http://example.com/file.zip  # Download file
-OmniOS > play music.wav         # Play audio file
-OmniOS > stop                   # Stop playback
+Step 1: Create User Account
+- Enter desired username
+- Create secure password
+- Confirm password
+- Account validation
+
+Step 2: Network Configuration
+- Automatic network scanning
+- Display available networks
+- Select desired network
+- Enter network credentials
+- Connection verification
+
+Step 3: Setup Completion
+- Configuration summary
+- System initialization
+- Ready for first login
 \`\`\`
 
-### Applications
+## 🔐 Authentication System
+
+### Login Process
+1. **Login Screen**: Professional login interface
+2. **Credentials**: Enter username and password
+3. **Verification**: Secure credential validation
+4. **Desktop**: Access to full system environment
+
+### Security Features
+- Password masking during input
+- Failed login protection
+- Session management
+- Secure logout capability
+
+## ⚙️ Settings System
+
+### Settings Menu Options
 \`\`\`
-OmniOS > open notepad           # Launch text editor
-OmniOS > open settings          # System configuration
-OmniOS > open files             # File manager
-OmniOS > open terminal          # Advanced terminal
+1. WiFi Configuration
+   - Network scanning
+   - Connection management
+   - Password configuration
+   - Connection status
+
+2. User Management
+   - Account modification
+   - Password changes
+   - User privileges
+   - Account deletion
+
+3. Application Management
+   - Installed applications
+   - Software installation
+   - Application removal
+   - Update management
+
+4. Admin Mode Toggle
+   - Privilege elevation
+   - Admin password verification
+   - Administrative access
+   - Security controls
+
+5. Factory Reset
+   - Complete system reset
+   - Data erasure warning
+   - Confirmation required
+   - System restoration
 \`\`\`
 
-## System Architecture
+## 🔧 Administrative Features
 
-### Memory Layout
-- `0x7C00-0x7DFF`: Bootloader
-- `0x1000-0x8000`: Enhanced Kernel
-- `0x8000+`: System data, buffers, and applications
+### Admin Mode
+- **Activation**: `admin` command with password verification
+- **Visual Indicator**: Red `[ADMIN]` prompt indicator
+- **Enhanced Commands**: Access to system-level commands
+- **Security**: Password-protected access
 
-### File System
-- FAT12 compatible
-- Directory structure support
-- File type detection
-- Clipboard functionality
+### Factory Reset
+- **Complete Reset**: Erases all user data and settings
+- **Confirmation**: Requires explicit user confirmation
+- **Restoration**: Returns system to first-boot state
+- **Safety**: Multiple warnings before execution
+
+## 🌐 Network Features
+
+### WiFi Configuration
+- **Network Scanning**: Automatic detection of available networks
+- **Security Support**: WPA/WPA2 and open network support
+- **Connection Management**: Save and manage network profiles
+- **Status Monitoring**: Real-time connection status
+
+### Network Management
+- **Configuration**: Network settings and parameters
+- **Diagnostics**: Connection testing and troubleshooting
+- **Profiles**: Multiple network profile support
+
+## 🎨 User Interface
 
 ### Color Scheme
-- **Blue Background**: Professional appearance
-- **White Text**: Normal output
-- **Green Text**: Success messages
-- **Red Text**: Error messages and admin mode
-- **Yellow Text**: Warning messages
+- **Professional Theme**: Blue headers with white text
+- **Status Colors**: 
+  - Success: Green text
+  - Errors: Red text
+  - Warnings: Yellow text
+  - Information: Cyan text
+- **Admin Mode**: Red indicators for elevated privileges
 
-## Technical Specifications
+### Desktop Environment
+- **Header Bar**: System information and user context
+- **Welcome Message**: Personalized user greeting
+- **Status Information**: System ready indicators
+- **Command Prompt**: Enhanced prompt with user and admin indicators
 
-### System Requirements
-- **Processor**: x86 compatible (486 or higher)
-- **Memory**: 1 MB RAM minimum
-- **Storage**: 1.44 MB floppy disk or equivalent
-- **Display**: VGA compatible display adapter
+## 📊 System Information
 
-### Enhanced Features
-- 20+ complete commands
-- Professional color scheme
-- Admin mode with privileges
-- File operations with clipboard
-- Media player functionality
-- Network download capability
-- Built-in applications suite
-- Enhanced error handling
-- Command history and retry
-- Directory navigation
+### Technical Specifications
+- **Architecture**: x86 16-bit real mode
+- **Memory**: 1MB minimum, optimized for low-resource systems
+- **Storage**: 1.44MB floppy disk image
+- **Display**: VGA compatible, 80x25 text mode
+- **Network**: WiFi support with WPA/WPA2 security
 
-## Development
+### Build Information
+- **Version**: 2.0.0 Enhanced Professional Edition
+- **Build System**: Enhanced with color-coded output
+- **Quality Assurance**: Comprehensive verification system
+- **Documentation**: Complete feature documentation
 
-### Project Structure
+## 🚀 Usage Examples
+
+### First Boot
+\`\`\`
+OmniOS 2.0 Enhanced Edition Loading...
+First boot detected - Setup will run
+Loading Enhanced Kernel...
+
+╔══════════════════════════════════════════════════════════════╗
+║                     INITIAL SETUP                           ║
+╚══════════════════════════════════════════════════════════════╝
+
+Step 1: Create User Account
+Enter username: john
+Enter password: ********
+Confirm password: ********
+User account created successfully!
+
+Step 2: Network Configuration
+Scanning for available networks...
+1. OmniNet-5G (Secured)
+2. HomeWiFi (Secured)
+3. PublicNet (Open)
+4. Skip network setup
+Select network (1-4): 1
+Enter network password: ********
+Network configured successfully!
+
+Setup Complete! Welcome to OmniOS 2.0
+Press Enter to continue...
+\`\`\`
+
+### Subsequent Boot
+\`\`\`
+╔══════════════════════════════════════════════════════════════╗
+║                        LOGIN                                 ║
+╚══════════════════════════════════════════════════════════════╝
+
+Username: john
+Password: ********
+Login successful!
+
+                    OmniOS 2.0 Desktop Environment                    
+Welcome back, john!
+System ready. Type "help" for available commands.
+
+john> help
+\`\`\`
+
+### Settings Menu
+\`\`\`
+john> settings
+
+╔══════════════════════════════════════════════════════════════╗
+║                       SETTINGS                               ║
+╚══════════════════════════════════════════════════════════════╝
+
+1. WiFi Configuration
+2. User Management
+3. Application Management
+4. Admin Mode Toggle
+5. Factory Reset
+0. Back to main menu
+
+Select option (0-5): 4
+Enter admin password: ********
+Administrator mode ENABLED
+
+john [ADMIN]> factory
+WARNING: This will erase ALL data and reset to factory defaults!
+Type Y to confirm factory reset: Y
+Performing factory reset...
+Factory reset complete. System will restart.
+\`\`\`
+
+## 🔍 Troubleshooting
+
+### Build Issues
+\`\`\`bash
+# Check dependencies
+./build.sh --check
+
+# Clean and rebuild
+./build.sh --clean
+./build.sh --build
+
+# Show detailed build report
+./build.sh --report
+\`\`\`
+
+### Runtime Issues
+\`\`\`bash
+# Safe mode with fallback displays
+./run-safe.sh
+
+# Text-only mode
+./run-text.sh
+
+# Check QEMU installation
+qemu-system-i386 --version
+\`\`\`
+
+### Common Problems
+
+#### "Missing dependencies" Error
+\`\`\`bash
+# Ubuntu/Debian
+sudo apt-get update
+sudo apt-get install nasm qemu-system-x86 make
+
+# Verify installation
+nasm --version
+qemu-system-i386 --version
+\`\`\`
+
+#### "Build failed" Error
+\`\`\`bash
+# Check source files
+./build.sh --check
+
+# Clean and retry
+make clean
+make all
+\`\`\`
+
+#### "No display" Issues
+\`\`\`bash
+# Use text mode
+qemu-system-i386 -drive format=raw,file=build/omnios.img,if=floppy -boot a -nographic
+\`\`\`
+
+## 📈 Development Roadmap
+
+### Version 2.1 (Planned)
+- Enhanced file system with directories
+- Package management system
+- Multi-user support
+- Advanced network protocols
+
+### Version 2.2 (Future)
+- Graphical user interface
+- Application framework
+- Hardware driver system
+- Real-time features
+
+## 🤝 Contributing
+
+### Development Setup
+\`\`\`bash
+git clone https://github.com/omnios/omnios-2.0.git
+cd omnios-2.0
+./build.sh --check
+\`\`\`
+
+### Code Structure
 \`\`\`
 omnios-2.0/
 ├── src/
 │   ├── boot/
-│   │   └── bootloader.asm      # Enhanced bootloader
+│   │   └── bootloader.asm     # Enhanced bootloader
 │   └── kernel/
-│       ├── kernel.asm          # Main kernel with all commands
-│       ├── print.asm           # Color printing functions
-│       ├── filesystem.asm      # File system operations
-│       └── network.asm         # Network functions
-├── build/                      # Build output directory
-├── Makefile                    # Enhanced build system
-├── build.sh                    # Build script
-└── README.md                   # This file
+│       └── kernel.asm         # Main kernel with all features
+├── build/                     # Build output directory
+├── docs/                      # Documentation
+├── build.sh                   # Enhanced build script
+├── Makefile                   # Build system
+└── README.md                  # This file
 \`\`\`
 
-### Build Targets
-- `make all` - Build complete enhanced system
-- `make run` - Build and run in QEMU
-- `make clean` - Clean build files
-- `make report` - Generate detailed build report
-- `make help` - Show all available targets
+## 📄 License
 
-## Version Information
-- **Version**: 2.0.0 Enhanced Command Edition
-- **Codename**: Phoenix Enhanced
-- **Release Date**: January 2025
-- **Architecture**: x86 16-bit
-- **Commands**: 20+ complete command set
+OmniOS 2.0 Enhanced Professional Edition is released under the MIT License.
 
-## License
-OmniOS 2.0 Enhanced Command Edition is released under the MIT License.
+## 🆘 Support
 
-## Support
 For issues, questions, or contributions:
-- Review the complete command reference with `help`
-- Check the build report for system details
-- Test all commands in the enhanced environment
+- Review the comprehensive help system with `help` command
+- Check the build report with `./build.sh --report`
+- Test all features in the enhanced environment
 
 ---
 
-**OmniOS 2.0 Enhanced Command Edition - Professional Operating System with Complete Command Set**
-\`\`\`
+**OmniOS 2.0 Enhanced Professional Edition - Complete Operating System with Setup, Authentication, and Administrative Features**
 
-\`\`\`shellscript file="run.sh"
-#!/bin/bash
-# OmniOS 2.0 Enhanced Edition Run Script
-
-if [ ! -f "build/omnios.img" ]; then
-    echo "OmniOS Enhanced Edition image not found. Building..."
-    ./build.sh
-fi
-
-echo "╔══════════════════════════════════════════════════════════════╗"
-echo "║              Starting OmniOS 2.0 Enhanced Edition           ║"
-echo "╚══════════════════════════════════════════════════════════════╝"
-echo ""
-echo "Enhanced Command Set Available:"
-echo "• Basic: help ls cd install open set admin exit off"
-echo "• Files: add delete move cut copy"
-echo "• Media: play stop"
-echo "• Network: download go retry back"
-echo ""
-echo "Starting system..."
-
-qemu-system-i386 -drive format=raw,file=build/omnios.img,if=floppy -boot a
+*Build Date: 2025-01-23*  
+*Version: 2.0.0 Enhanced Professional Edition*  
+*Features: 20+ commands, Setup system, Authentication, Settings menu, Admin mode, Factory reset*
