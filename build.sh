@@ -1,371 +1,305 @@
 #!/bin/bash
 
-# OmniOS 2.0 Enhanced Build System with Color-Coded Output
-# Professional build script with comprehensive error handling
+# OmniOS 2.0 Enhanced Build System
+# Professional build script with color-coded output and comprehensive features
 
-# Color definitions for enhanced output
+# Color definitions for professional output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
 CYAN='\033[0;36m'
 WHITE='\033[1;37m'
+BOLD='\033[1m'
 NC='\033[0m' # No Color
 
 # Build configuration
 BUILD_DIR="build"
 SRC_DIR="src"
-OUTPUT_IMAGE="omnios.img"
-BOOTLOADER="$SRC_DIR/boot/bootloader.asm"
-KERNEL="$SRC_DIR/kernel/kernel.asm"
+KERNEL_SRC="$SRC_DIR/kernel/kernel.asm"
+BOOTLOADER_SRC="$SRC_DIR/boot/bootloader.asm"
+KERNEL_BIN="$BUILD_DIR/kernel.bin"
+BOOTLOADER_BIN="$BUILD_DIR/bootloader.bin"
+OS_IMAGE="$BUILD_DIR/omnios.img"
 
-# Function to print colored messages
-print_status() {
-    echo -e "${BLUE}[INFO]${NC} $1"
+# Function to print colored output
+print_header() {
+    echo -e "${BOLD}${BLUE}================================${NC}"
+    echo -e "${BOLD}${BLUE}    OmniOS 2.0 Build System    ${NC}"
+    echo -e "${BOLD}${BLUE}    Professional Edition       ${NC}"
+    echo -e "${BOLD}${BLUE}================================${NC}"
 }
 
 print_success() {
     echo -e "${GREEN}[SUCCESS]${NC} $1"
 }
 
-print_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
-}
-
 print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-print_header() {
-    echo -e "${CYAN}================================${NC}"
-    echo -e "${WHITE}$1${NC}"
-    echo -e "${CYAN}================================${NC}"
+print_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
 }
 
-# Function to check if required tools are installed
+print_info() {
+    echo -e "${CYAN}[INFO]${NC} $1"
+}
+
+print_step() {
+    echo -e "${PURPLE}[STEP]${NC} $1"
+}
+
+# Function to check dependencies
 check_dependencies() {
-    print_header "CHECKING BUILD DEPENDENCIES"
+    print_step "Checking build dependencies..."
     
-    local missing_tools=()
+    local missing_deps=()
     
     # Check for NASM
     if ! command -v nasm &> /dev/null; then
-        missing_tools+=("nasm")
+        missing_deps+=("nasm")
     else
-        print_success "NASM assembler found: $(nasm -v)"
+        print_success "Found NASM: $(nasm -v)"
     fi
     
-    # Check for QEMU (optional but recommended)
+    # Check for QEMU (optional)
     if ! command -v qemu-system-i386 &> /dev/null; then
-        print_warning "QEMU not found - you won't be able to test the OS directly"
+        print_warning "QEMU not found - OS testing will not be available"
     else
-        print_success "QEMU emulator found: $(qemu-system-i386 --version | head -n1)"
+        print_success "Found QEMU: $(qemu-system-i386 --version | head -n1)"
     fi
     
     # Check for dd
     if ! command -v dd &> /dev/null; then
-        missing_tools+=("dd")
+        missing_deps+=("dd")
     else
-        print_success "dd utility found"
+        print_success "Found dd utility"
     fi
     
-    if [ ${#missing_tools[@]} -ne 0 ]; then
-        print_error "Missing required tools: ${missing_tools[*]}"
-        print_status "Please install missing dependencies:"
-        print_status "  Ubuntu/Debian: sudo apt-get install nasm qemu-system-x86"
-        print_status "  CentOS/RHEL: sudo yum install nasm qemu-kvm"
-        print_status "  macOS: brew install nasm qemu"
+    if [ ${#missing_deps[@]} -ne 0 ]; then
+        print_error "Missing required dependencies: ${missing_deps[*]}"
+        print_info "Please install missing dependencies and try again"
         exit 1
     fi
     
-    print_success "All required dependencies are installed"
+    print_success "All required dependencies found"
 }
 
 # Function to create build directory
-setup_build_environment() {
-    print_header "SETTING UP BUILD ENVIRONMENT"
+create_build_dir() {
+    print_step "Setting up build environment..."
     
     if [ -d "$BUILD_DIR" ]; then
-        print_status "Cleaning existing build directory..."
+        print_info "Cleaning existing build directory..."
         rm -rf "$BUILD_DIR"
     fi
     
     mkdir -p "$BUILD_DIR"
     print_success "Build directory created: $BUILD_DIR"
-    
-    # Create temporary directories for intermediate files
-    mkdir -p "$BUILD_DIR/temp"
-    print_success "Temporary directory created"
 }
 
-# Function to validate source files
-validate_source_files() {
-    print_header "VALIDATING SOURCE FILES"
+# Function to verify source files
+verify_sources() {
+    print_step "Verifying source files..."
     
-    local required_files=("$BOOTLOADER" "$KERNEL")
-    local missing_files=()
+    local required_files=(
+        "$BOOTLOADER_SRC"
+        "$KERNEL_SRC"
+    )
     
     for file in "${required_files[@]}"; do
-        if [ ! -f "$file" ]; then
-            missing_files+=("$file")
-        else
+        if [ -f "$file" ]; then
             print_success "Found: $file ($(wc -l < "$file") lines)"
+        else
+            print_error "Missing required file: $file"
+            exit 1
         fi
     done
+}
+
+# Function to build bootloader
+build_bootloader() {
+    print_step "Building bootloader..."
     
-    if [ ${#missing_files[@]} -ne 0 ]; then
-        print_error "Missing required source files:"
-        for file in "${missing_files[@]}"; do
-            print_error "  - $file"
-        done
+    if nasm -f bin -o "$BOOTLOADER_BIN" "$BOOTLOADER_SRC"; then
+        local size=$(stat -c%s "$BOOTLOADER_BIN")
+        print_success "Bootloader built successfully ($size bytes)"
+        
+        # Verify bootloader size (should be exactly 512 bytes)
+        if [ $size -eq 512 ]; then
+            print_success "Bootloader size verification passed"
+        else
+            print_warning "Bootloader size is $size bytes (expected 512 bytes)"
+        fi
+    else
+        print_error "Failed to build bootloader"
         exit 1
     fi
-    
-    print_success "All source files validated"
 }
 
-# Function to assemble bootloader
-build_bootloader() {
-    print_header "BUILDING BOOTLOADER"
-    
-    print_status "Assembling bootloader from $BOOTLOADER..."
-    
-    if nasm -f bin "$BOOTLOADER" -o "$BUILD_DIR/bootloader.bin" 2>&1 | while IFS= read -r line; do
-        if [[ $line == *"error"* ]]; then
-            print_error "Bootloader assembly error: $line"
-        elif [[ $line == *"warning"* ]]; then
-            print_warning "Bootloader assembly warning: $line"
-        else
-            print_status "$line"
-        fi
-    done; then
-        # Check if bootloader was actually created
-        if [ -f "$BUILD_DIR/bootloader.bin" ]; then
-            local size=$(stat -c%s "$BUILD_DIR/bootloader.bin" 2>/dev/null || stat -f%z "$BUILD_DIR/bootloader.bin" 2>/dev/null)
-            print_success "Bootloader assembled successfully ($size bytes)"
-            
-            # Verify bootloader size (should be exactly 512 bytes)
-            if [ "$size" -eq 512 ]; then
-                print_success "Bootloader size is correct (512 bytes)"
-            else
-                print_warning "Bootloader size is $size bytes (expected 512 bytes)"
-            fi
-        else
-            print_error "Bootloader assembly failed - output file not created"
-            return 1
-        fi
-    else
-        print_error "Bootloader assembly failed"
-        return 1
-    fi
-}
-
-# Function to assemble kernel
+# Function to build kernel
 build_kernel() {
-    print_header "BUILDING KERNEL"
+    print_step "Building kernel..."
     
-    print_status "Assembling kernel from $KERNEL..."
-    
-    if nasm -f bin "$KERNEL" -o "$BUILD_DIR/kernel.bin" 2>&1 | while IFS= read -r line; do
-        if [[ $line == *"error"* ]]; then
-            print_error "Kernel assembly error: $line"
-        elif [[ $line == *"warning"* ]]; then
-            print_warning "Kernel assembly warning: $line"
-        else
-            print_status "$line"
-        fi
-    done; then
-        # Check if kernel was actually created
-        if [ -f "$BUILD_DIR/kernel.bin" ]; then
-            local size=$(stat -c%s "$BUILD_DIR/kernel.bin" 2>/dev/null || stat -f%z "$BUILD_DIR/kernel.bin" 2>/dev/null)
-            print_success "Kernel assembled successfully ($size bytes)"
-            
-            # Calculate sectors needed (512 bytes per sector)
-            local sectors=$(( (size + 511) / 512 ))
-            print_status "Kernel requires $sectors sectors"
-        else
-            print_error "Kernel assembly failed - output file not created"
-            return 1
-        fi
+    if nasm -f bin -o "$KERNEL_BIN" "$KERNEL_SRC"; then
+        local size=$(stat -c%s "$KERNEL_BIN")
+        print_success "Kernel built successfully ($size bytes)"
+        
+        # Calculate sectors used
+        local sectors=$((($size + 511) / 512))
+        print_info "Kernel uses $sectors sectors"
     else
-        print_error "Kernel assembly failed"
-        return 1
+        print_error "Failed to build kernel"
+        exit 1
     fi
 }
 
-# Function to create disk image
-create_disk_image() {
-    print_header "CREATING DISK IMAGE"
+# Function to create OS image
+create_image() {
+    print_step "Creating OS image..."
     
-    print_status "Creating 1.44MB floppy disk image..."
-    
-    # Create 1.44MB disk image (2880 sectors * 512 bytes)
-    if dd if=/dev/zero of="$BUILD_DIR/$OUTPUT_IMAGE" bs=512 count=2880 2>/dev/null; then
-        print_success "Blank disk image created (1.44MB)"
-    else
-        print_error "Failed to create disk image"
-        return 1
-    fi
+    # Create 1.44MB floppy disk image
+    dd if=/dev/zero of="$OS_IMAGE" bs=512 count=2880 status=none
     
     # Write bootloader to first sector
-    print_status "Writing bootloader to disk image..."
-    if dd if="$BUILD_DIR/bootloader.bin" of="$BUILD_DIR/$OUTPUT_IMAGE" bs=512 count=1 conv=notrunc 2>/dev/null; then
-        print_success "Bootloader written to sector 0"
-    else
-        print_error "Failed to write bootloader to disk image"
-        return 1
-    fi
+    dd if="$BOOTLOADER_BIN" of="$OS_IMAGE" bs=512 count=1 conv=notrunc status=none
     
-    # Write kernel starting from sector 1
-    print_status "Writing kernel to disk image..."
-    if dd if="$BUILD_DIR/kernel.bin" of="$BUILD_DIR/$OUTPUT_IMAGE" bs=512 seek=1 conv=notrunc 2>/dev/null; then
-        print_success "Kernel written starting from sector 1"
-    else
-        print_error "Failed to write kernel to disk image"
-        return 1
-    fi
+    # Write kernel starting from sector 2
+    dd if="$KERNEL_BIN" of="$OS_IMAGE" bs=512 seek=1 conv=notrunc status=none
     
-    # Copy final image to root directory
-    if cp "$BUILD_DIR/$OUTPUT_IMAGE" "./omnios.img"; then
-        print_success "Final image copied to ./omnios.img"
-    else
-        print_error "Failed to copy final image"
-        return 1
-    fi
+    local size=$(stat -c%s "$OS_IMAGE")
+    print_success "OS image created: $OS_IMAGE ($size bytes)"
 }
 
-# Function to verify the built image
-verify_image() {
-    print_header "VERIFYING BUILT IMAGE"
-    
-    if [ ! -f "./omnios.img" ]; then
-        print_error "Output image not found: ./omnios.img"
-        return 1
-    fi
-    
-    local size=$(stat -c%s "./omnios.img" 2>/dev/null || stat -f%z "./omnios.img" 2>/dev/null)
-    print_success "Image size: $size bytes ($(( size / 1024 ))KB)"
-    
-    # Check boot signature
-    local boot_sig=$(xxd -s 510 -l 2 -p "./omnios.img" 2>/dev/null)
-    if [ "$boot_sig" = "55aa" ]; then
-        print_success "Boot signature verified (0x55AA)"
-    else
-        print_warning "Boot signature not found or incorrect: 0x$boot_sig"
-    fi
-    
-    print_success "Image verification completed"
-}
-
-# Function to show build summary
-show_build_summary() {
-    print_header "BUILD SUMMARY"
-    
-    echo -e "${WHITE}Build Configuration:${NC}"
-    echo -e "  Source Directory: ${CYAN}$SRC_DIR${NC}"
-    echo -e "  Build Directory:  ${CYAN}$BUILD_DIR${NC}"
-    echo -e "  Output Image:     ${CYAN}./omnios.img${NC}"
-    echo ""
-    
-    if [ -f "./omnios.img" ]; then
-        local size=$(stat -c%s "./omnios.img" 2>/dev/null || stat -f%z "./omnios.img" 2>/dev/null)
-        echo -e "${WHITE}Output Details:${NC}"
-        echo -e "  Image Size:       ${GREEN}$size bytes ($(( size / 1024 ))KB)${NC}"
-        echo -e "  Image Type:       ${GREEN}1.44MB Floppy Disk${NC}"
-        echo -e "  Architecture:     ${GREEN}x86 16-bit Real Mode${NC}"
-        echo ""
-        
-        echo -e "${WHITE}Features Included:${NC}"
-        echo -e "  ${GREEN}✓${NC} Initial Setup System"
-        echo -e "  ${GREEN}✓${NC} User Authentication"
-        echo -e "  ${GREEN}✓${NC} Enhanced Settings Menu"
-        echo -e "  ${GREEN}✓${NC} Color Theme Support"
-        echo -e "  ${GREEN}✓${NC} Administrative Features"
-        echo -e "  ${GREEN}✓${NC} Factory Reset Capability"
-        echo -e "  ${GREEN}✓${NC} Professional Color Scheme (Black Background)"
-        echo ""
-        
-        echo -e "${WHITE}Usage Instructions:${NC}"
-        echo -e "  Test with QEMU:   ${CYAN}./run.sh${NC}"
-        echo -e "  Test (text mode): ${CYAN}./run-text.sh${NC}"
-        echo -e "  Test (safe mode): ${CYAN}./run-safe.sh${NC}"
-        echo -e "  Flash to device:  ${CYAN}sudo dd if=omnios.img of=/dev/sdX bs=512${NC}"
-        echo ""
-        
-        print_success "BUILD COMPLETED SUCCESSFULLY!"
-        echo -e "${GREEN}Your OmniOS 2.0 image is ready: ./omnios.img${NC}"
-    else
-        print_error "BUILD FAILED - No output image generated"
-        return 1
-    fi
-}
-
-# Function to clean up temporary files
-cleanup() {
-    print_status "Cleaning up temporary files..."
-    if [ -d "$BUILD_DIR/temp" ]; then
-        rm -rf "$BUILD_DIR/temp"
-        print_success "Temporary files cleaned"
-    fi
-}
-
-# Function to run the OS after building (if --run flag is provided)
+# Function to run OS in QEMU
 run_os() {
-    if [ -f "./omnios.img" ]; then
-        print_header "RUNNING OMNIOS 2.0"
-        print_status "Starting QEMU emulator..."
-        print_status "Press Ctrl+Alt+G to release mouse, Ctrl+Alt+Q to quit"
-        echo ""
-        
-        # Run with QEMU
-        qemu-system-i386 -drive format=raw,file=./omnios.img,index=0,if=floppy -m 16M -display gtk
-    else
-        print_error "No image file found to run. Build first."
+    print_step "Starting OmniOS 2.0 in QEMU..."
+    
+    if [ ! -f "$OS_IMAGE" ]; then
+        print_error "OS image not found. Build first with: $0"
         exit 1
     fi
+    
+    print_info "Starting QEMU with professional settings..."
+    print_info "Press Ctrl+Alt+G to release mouse, Ctrl+Alt+Q to quit"
+    
+    # Run with professional QEMU settings
+    qemu-system-i386 \
+        -drive format=raw,file="$OS_IMAGE",if=floppy \
+        -boot a \
+        -m 16M \
+        -display gtk \
+        -name "OmniOS 2.0 Professional Edition" \
+        -rtc base=localtime \
+        -no-reboot \
+        -monitor stdio
 }
 
-# Main build process
-main() {
-    # Print build header
-    echo -e "${CYAN}"
-    echo "  ██████╗ ███╗   ███╗███╗   ██╗██╗ ██████╗ ███████╗    ██████╗    ██████╗ "
-    echo " ██╔═══██╗████╗ ████║████╗  ██║██║██╔═══██╗██╔════╝    ╚════██╗  ██╔═████╗"
-    echo " ██║   ██║██╔████╔██║██╔██╗ ██║██║██║   ██║███████╗     █████╔╝  ██║██╔██║"
-    echo " ██║   ██║██║╚██╔╝██║██║╚██╗██║██║██║   ██║╚════██║    ██╔═══╝   ████╔╝██║"
-    echo " ╚██████╔╝██║ ╚═╝ ██║██║ ╚████║██║╚██████╔╝███████║    ███████╗  ╚██████╔╝"
-    echo "  ╚═════╝ ╚═╝     ╚═╝╚═╝  ╚═══╝╚═╝ ╚═════╝ ╚══════╝    ╚══════╝   ╚═════╝ "
-    echo -e "${NC}"
-    echo -e "${WHITE}Enhanced Professional Build System${NC}"
-    echo -e "${WHITE}Build Date: $(date)${NC}"
-    echo ""
+# Function to show build statistics
+show_statistics() {
+    print_step "Build Statistics:"
     
-    # Execute build steps
-    check_dependencies || exit 1
-    setup_build_environment || exit 1
-    validate_source_files || exit 1
-    build_bootloader || exit 1
-    build_kernel || exit 1
-    create_disk_image || exit 1
-    verify_image || exit 1
-    cleanup
-    show_build_summary || exit 1
+    if [ -f "$BOOTLOADER_BIN" ]; then
+        local boot_size=$(stat -c%s "$BOOTLOADER_BIN")
+        print_info "Bootloader: $boot_size bytes"
+    fi
     
-    echo ""
-    print_success "Build process completed successfully!"
-    echo -e "${YELLOW}Note: The system now uses a professional black background.${NC}"
-    echo -e "${YELLOW}First boot will show the setup screen for initial configuration.${NC}"
-    echo -e "${YELLOW}The kernel entry point has been fixed for proper startup.${NC}"
+    if [ -f "$KERNEL_BIN" ]; then
+        local kernel_size=$(stat -c%s "$KERNEL_BIN")
+        local kernel_sectors=$((($kernel_size + 511) / 512))
+        print_info "Kernel: $kernel_size bytes ($kernel_sectors sectors)"
+    fi
     
-    # Check if --run flag was provided
-    if [[ "$1" == "--run" ]]; then
-        echo ""
-        run_os
+    if [ -f "$OS_IMAGE" ]; then
+        local image_size=$(stat -c%s "$OS_IMAGE")
+        print_info "Total image: $image_size bytes"
+    fi
+    
+    print_success "Build completed successfully!"
+}
+
+# Function to clean build artifacts
+clean_build() {
+    print_step "Cleaning build artifacts..."
+    
+    if [ -d "$BUILD_DIR" ]; then
+        rm -rf "$BUILD_DIR"
+        print_success "Build directory cleaned"
+    else
+        print_info "Build directory already clean"
     fi
 }
 
-# Handle script interruption
-trap 'print_error "Build interrupted by user"; cleanup; exit 1' INT TERM
+# Function to show help
+show_help() {
+    echo -e "${BOLD}OmniOS 2.0 Build System - Usage:${NC}"
+    echo ""
+    echo -e "${CYAN}$0${NC}                 - Build the complete OS"
+    echo -e "${CYAN}$0 --run${NC}           - Build and run OS in QEMU"
+    echo -e "${CYAN}$0 --clean${NC}         - Clean build artifacts"
+    echo -e "${CYAN}$0 --help${NC}          - Show this help message"
+    echo -e "${CYAN}$0 --bootloader${NC}    - Build only bootloader"
+    echo -e "${CYAN}$0 --kernel${NC}        - Build only kernel"
+    echo ""
+    echo -e "${YELLOW}Examples:${NC}"
+    echo -e "  $0                    # Full build"
+    echo -e "  $0 --run              # Build and test"
+    echo -e "  $0 --clean            # Clean up"
+    echo ""
+}
 
-# Run main function with all arguments
-main "$@"
+# Main build function
+main_build() {
+    print_header
+    check_dependencies
+    create_build_dir
+    verify_sources
+    build_bootloader
+    build_kernel
+    create_image
+    show_statistics
+}
+
+# Parse command line arguments
+case "$1" in
+    --help|-h)
+        show_help
+        exit 0
+        ;;
+    --clean)
+        clean_build
+        exit 0
+        ;;
+    --run)
+        main_build
+        run_os
+        exit 0
+        ;;
+    --bootloader)
+        print_header
+        check_dependencies
+        create_build_dir
+        verify_sources
+        build_bootloader
+        exit 0
+        ;;
+    --kernel)
+        print_header
+        check_dependencies
+        create_build_dir
+        verify_sources
+        build_kernel
+        exit 0
+        ;;
+    "")
+        main_build
+        exit 0
+        ;;
+    *)
+        print_error "Unknown option: $1"
+        show_help
+        exit 1
+        ;;
+esac

@@ -1,5 +1,5 @@
-; OmniOS 2.0 Enhanced Kernel with Complete Feature Set
-; Fixed kernel entry point and proper initialization
+; OmniOS 2.0 Enhanced Kernel - Complete Standalone Version
+; All functions integrated to avoid duplicate label errors
 [BITS 16]
 [ORG 0x0000]
 
