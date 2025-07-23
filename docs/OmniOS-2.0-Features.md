@@ -209,7 +209,7 @@
 - **Language Packs**: Multi-language support system
 \`\`\`
 
-```plaintext file="src/kernel2.asm"
+\`\`\`plaintext file="src/kernel2.asm"
 ; OmniOS 2.0 Enhanced Kernel
 [BITS 16]
 [ORG 0x0000]

@@ -219,7 +219,7 @@ For issues, questions, or contributions:
 **OmniOS 2.0 Enhanced Command Edition - Professional Operating System with Complete Command Set**
 \`\`\`
 
-```shellscript file="run.sh"
+\`\`\`shellscript file="run.sh"
 #!/bin/bash
 # OmniOS 2.0 Enhanced Edition Run Script
 
