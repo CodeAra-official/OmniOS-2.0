@@ -1,416 +1,440 @@
 ; OmniOS 2.0 Professional Kernel
-; Complete operating system with enhanced features and professional design
+; Complete operating system with advanced features
 
 [BITS 16]
 [ORG 0x0000]
 
-section .text
-
 kernel_start:
-    ; Initialize segments for kernel
+    ; Initialize segments
     mov ax, 0x1000
     mov ds, ax
     mov es, ax
-    mov ss, ax
-    mov sp, 0xFFFF
-
-    ; Clear screen with professional black background
-    call clear_screen
     
-    ; Check if this is first boot
-    call check_first_boot
+    ; Clear screen with black background
+    mov ax, 0x0003
+    int 0x10
+    
+    ; Check if first boot (flag stored at 0x500 by bootloader)
+    push ds
+    mov ax, 0x0000
+    mov ds, ax
+    mov al, [0x500]
+    pop ds
+    mov [first_boot], al
+    
+    ; Display professional header
+    call display_header
+    
+    ; Check first boot status
     cmp byte [first_boot], 1
     je first_boot_setup
     
     ; Normal boot - show login
-    jmp show_login
+    call user_login
+    jmp main_loop
 
 first_boot_setup:
-    ; Display first boot setup screen
-    call display_first_boot_screen
-    call setup_initial_user
+    call setup_system
+    call create_user_account
     
-    ; Mark first boot as complete
+    ; Mark setup as complete
     mov byte [first_boot], 0
-    
-    ; Continue to normal operation
-    jmp show_login
+    call save_setup_flag
 
-show_login:
-    ; Display login screen
-    call display_login_screen
-    call handle_login
-    
-    ; After successful login, show main interface
-    jmp main_interface
-
-main_interface:
-    ; Clear screen and show main interface
-    call clear_screen
-    call display_header
-    call display_welcome_message
-    call command_loop
-
-; ============================================================================
-; SCREEN AND DISPLAY FUNCTIONS
-; ============================================================================
-
-clear_screen:
-    mov ax, 0x0003      ; Set video mode 3 (80x25 color text)
-    int 0x10
-    
-    ; Set background to black, text to bright green
-    mov ah, 0x09
-    mov al, ' '
-    mov bh, 0
-    mov bl, 0x0A        ; Bright green on black
-    mov cx, 2000        ; Fill entire screen
-    int 0x10
-    
-    ; Position cursor at top-left
-    mov ah, 0x02
-    mov bh, 0
-    mov dx, 0x0000
-    int 0x10
-    ret
-
-display_header:
-    mov si, header_msg
-    call print_string
-    ret
-
-display_welcome_message:
-    mov si, welcome_msg
-    call print_string
-    
-    ; Show current user
-    mov si, current_user_msg
-    call print_string
-    mov si, username
-    call print_string
-    call print_newline
-    call print_newline
-    ret
-
-display_first_boot_screen:
-    call clear_screen
-    mov si, first_boot_title
-    call print_string
-    mov si, first_boot_welcome
-    call print_string
-    ret
-
-display_login_screen:
-    call clear_screen
-    mov si, login_title
-    call print_string
-    mov si, login_prompt
-    call print_string
-    ret
-
-; ============================================================================
-; FIRST BOOT AND SETUP FUNCTIONS
-; ============================================================================
-
-check_first_boot:
-    ; For this implementation, we'll check a simple flag
-    ; In a real system, this would check persistent storage
-    mov al, [first_boot]
-    ret
-
-setup_initial_user:
-    ; Get username
-    mov si, setup_username_prompt
-    call print_string
-    mov di, username
-    call get_input
-    
-    ; Get password
-    mov si, setup_password_prompt
-    call print_string
-    mov di, password
-    call get_input_hidden
-    
-    ; Confirm setup
-    mov si, setup_complete_msg
-    call print_string
-    call wait_key
-    ret
-
-; ============================================================================
-; LOGIN AND AUTHENTICATION
-; ============================================================================
-
-handle_login:
-    mov si, username_prompt
-    call print_string
-    mov di, input_username
-    call get_input
-    
-    mov si, password_prompt
-    call print_string
-    mov di, input_password
-    call get_input_hidden
-    
-    ; Simple authentication check
-    call authenticate_user
-    cmp al, 1
-    je login_success
-    
-    ; Login failed
-    mov si, login_failed_msg
-    call print_string
-    call wait_key
-    jmp show_login
-
-login_success:
-    mov si, login_success_msg
-    call print_string
-    call wait_key
-    ret
-
-authenticate_user:
-    ; Simple string comparison for demo
-    mov si, input_username
-    mov di, username
-    call compare_strings
-    cmp al, 1
-    jne auth_fail
-    
-    mov si, input_password
-    mov di, password
-    call compare_strings
-    cmp al, 1
-    jne auth_fail
-    
-    mov al, 1  ; Success
-    ret
-
-auth_fail:
-    mov al, 0  ; Failure
-    ret
-
-; ============================================================================
-; COMMAND PROCESSING
-; ============================================================================
-
-command_loop:
+main_loop:
     ; Display prompt
     mov si, prompt
     call print_string
     
-    ; Get command input
-    mov di, command_buffer
+    ; Get user input
     call get_input
     
     ; Process command
     call process_command
     
-    ; Loop back
-    jmp command_loop
+    jmp main_loop
 
+; Display professional header
+display_header:
+    call clear_screen
+    
+    ; Set bright green text
+    mov ah, 0x09
+    mov al, ' '
+    mov bh, 0
+    mov bl, 0x0A
+    mov cx, 80
+    int 0x10
+    
+    mov si, header_msg
+    call print_string_color
+    
+    mov si, version_msg
+    call print_string_color
+    
+    call newline
+    ret
+
+; First boot setup system
+setup_system:
+    mov si, setup_welcome
+    call print_string_color
+    
+    mov si, setup_msg1
+    call print_string
+    
+    ; Wait for key press
+    mov ah, 0x00
+    int 0x16
+    
+    call newline
+    ret
+
+; Create user account
+create_user_account:
+    mov si, create_user_msg
+    call print_string
+    
+    ; Get username
+    mov si, username_prompt
+    call print_string
+    mov di, username
+    call get_string
+    
+    ; Get password
+    mov si, password_prompt
+    call print_string
+    mov di, password
+    call get_string_hidden
+    
+    ; Confirm account creation
+    mov si, account_created_msg
+    call print_string
+    
+    ; Wait for key
+    mov ah, 0x00
+    int 0x16
+    
+    call newline
+    ret
+
+; User login system
+user_login:
+    mov si, login_header
+    call print_string_color
+    
+.login_loop:
+    ; Get username
+    mov si, login_username
+    call print_string
+    mov di, input_username
+    call get_string
+    
+    ; Get password
+    mov si, login_password
+    call print_string
+    mov di, input_password
+    call get_string_hidden
+    
+    ; Verify credentials
+    call verify_login
+    cmp al, 1
+    je .login_success
+    
+    ; Login failed
+    mov si, login_failed
+    call print_string
+    jmp .login_loop
+
+.login_success:
+    mov si, login_success_msg
+    call print_string
+    
+    ; Small delay
+    mov cx, 0x8000
+.delay:
+    nop
+    loop .delay
+    
+    ret
+
+; Verify login credentials
+verify_login:
+    ; Compare username
+    mov si, input_username
+    mov di, username
+    call compare_strings
+    cmp al, 1
+    jne .login_fail
+    
+    ; Compare password
+    mov si, input_password
+    mov di, password
+    call compare_strings
+    cmp al, 1
+    jne .login_fail
+    
+    mov al, 1  ; Success
+    ret
+
+.login_fail:
+    mov al, 0  ; Failure
+    ret
+
+; Process user commands
 process_command:
     ; Check for empty command
-    mov si, command_buffer
-    cmp byte [si], 0
-    je command_loop
+    cmp byte [input_buffer], 0
+    je .done
     
-    ; Check for 'help' command
-    mov si, command_buffer
-    mov di, cmd_help_str
+    ; Check commands
+    mov si, input_buffer
+    mov di, cmd_help
     call compare_strings
     cmp al, 1
     je show_help
     
-    ; Check for 'clear' command
-    mov si, command_buffer
-    mov di, cmd_clear_str
+    mov si, input_buffer
+    mov di, cmd_clear
     call compare_strings
     cmp al, 1
-    je clear_command
+    je clear_screen
     
-    ; Check for 'settings' command
-    mov si, command_buffer
-    mov di, cmd_settings_str
+    mov si, input_buffer
+    mov di, cmd_info
+    call compare_strings
+    cmp al, 1
+    je show_system_info
+    
+    mov si, input_buffer
+    mov di, cmd_settings
     call compare_strings
     cmp al, 1
     je show_settings
     
-    ; Check for 'admin' command
-    mov si, command_buffer
-    mov di, cmd_admin_str
+    mov si, input_buffer
+    mov di, cmd_admin
     call compare_strings
     cmp al, 1
     je admin_mode
     
-    ; Check for 'about' command
-    mov si, command_buffer
-    mov di, cmd_about_str
-    call compare_strings
-    cmp al, 1
-    je show_about
-    
-    ; Check for 'logout' command
-    mov si, command_buffer
-    mov di, cmd_logout_str
-    call compare_strings
-    cmp al, 1
-    je logout_user
-    
-    ; Check for 'shutdown' command
-    mov si, command_buffer
-    mov di, cmd_shutdown_str
+    mov si, input_buffer
+    mov di, cmd_shutdown
     call compare_strings
     cmp al, 1
     je shutdown_system
     
     ; Unknown command
-    mov si, unknown_command_msg
+    mov si, unknown_cmd
     call print_string
+
+.done:
     ret
 
-; ============================================================================
-; COMMAND IMPLEMENTATIONS
-; ============================================================================
-
+; Show help system
 show_help:
-    mov si, help_msg
-    call print_string
-    ret
-
-clear_command:
     call clear_screen
-    call display_header
+    mov si, help_header
+    call print_string_color
+    
+    mov si, help_commands
+    call print_string
+    
+    ; Wait for key
+    mov ah, 0x00
+    int 0x16
+    
+    call clear_screen
     ret
 
+; Show system information
+show_system_info:
+    call clear_screen
+    mov si, info_header
+    call print_string_color
+    
+    mov si, system_info
+    call print_string
+    
+    ; Wait for key
+    mov ah, 0x00
+    int 0x16
+    
+    call clear_screen
+    ret
+
+; Settings menu
 show_settings:
     call clear_screen
-    mov si, settings_title
-    call print_string
+    
+.settings_loop:
+    mov si, settings_header
+    call print_string_color
+    
     mov si, settings_menu
     call print_string
     
-    ; Get settings choice
-    call get_key
+    ; Get choice
+    mov ah, 0x00
+    int 0x16
     
     cmp al, '1'
     je change_theme
     cmp al, '2'
     je change_password
     cmp al, '3'
-    je system_info
-    cmp al, '4'
     je factory_reset
+    cmp al, '4'
+    je .exit_settings
     
-    ; Return to main
+    jmp .settings_loop
+
+.exit_settings:
     call clear_screen
-    call display_header
     ret
 
+; Change theme
 change_theme:
     mov si, theme_msg
     call print_string
-    call wait_key
-    call clear_screen
-    call display_header
-    ret
-
-change_password:
-    mov si, change_pass_msg
-    call print_string
-    mov di, password
-    call get_input_hidden
-    mov si, password_changed_msg
-    call print_string
-    call wait_key
-    call clear_screen
-    call display_header
-    ret
-
-system_info:
-    mov si, system_info_msg
-    call print_string
-    call wait_key
-    call clear_screen
-    call display_header
-    ret
-
-factory_reset:
-    mov si, factory_reset_msg
-    call print_string
-    call get_key
-    cmp al, 'y'
-    je do_factory_reset
-    cmp al, 'Y'
-    je do_factory_reset
-    call clear_screen
-    call display_header
-    ret
-
-do_factory_reset:
-    mov si, factory_reset_confirm_msg
-    call print_string
-    mov byte [first_boot], 1
-    call wait_key
-    jmp first_boot_setup
-
-admin_mode:
-    mov si, admin_prompt_msg
-    call print_string
-    mov di, admin_password_input
-    call get_input_hidden
     
-    ; Check admin password (simple check)
-    mov si, admin_password_input
-    mov di, admin_password
+    ; Toggle theme (simple implementation)
+    xor byte [current_theme], 1
+    
+    mov si, theme_changed
+    call print_string
+    
+    ; Wait for key
+    mov ah, 0x00
+    int 0x16
+    
+    ret
+
+; Change password
+change_password:
+    mov si, new_password_msg
+    call print_string
+    
+    mov di, password
+    call get_string_hidden
+    
+    mov si, password_changed
+    call print_string
+    
+    ; Wait for key
+    mov ah, 0x00
+    int 0x16
+    
+    ret
+
+; Factory reset
+factory_reset:
+    mov si, reset_warning
+    call print_string
+    
+    ; Get confirmation
+    mov ah, 0x00
+    int 0x16
+    
+    cmp al, 'Y'
+    je .do_reset
+    cmp al, 'y'
+    je .do_reset
+    
+    mov si, reset_cancelled
+    call print_string
+    ret
+
+.do_reset:
+    ; Clear user data
+    mov di, username
+    mov cx, 32
+    xor al, al
+    rep stosb
+    
+    mov di, password
+    mov cx, 32
+    xor al, al
+    rep stosb
+    
+    ; Set first boot flag
+    mov byte [first_boot], 1
+    
+    mov si, reset_complete
+    call print_string
+    
+    ; Restart system
+    int 0x19
+
+; Administrator mode
+admin_mode:
+    mov si, admin_password_prompt
+    call print_string
+    
+    mov di, admin_input
+    call get_string_hidden
+    
+    ; Check admin password (simple: "admin")
+    mov si, admin_input
+    mov di, admin_pass
     call compare_strings
     cmp al, 1
-    je admin_access_granted
+    jne .admin_fail
     
-    mov si, admin_access_denied_msg
+    ; Admin mode activated
+    call clear_screen
+    mov si, admin_welcome
+    call print_string_color
+    
+    mov si, admin_commands
     call print_string
-    call wait_key
+    
+    ; Wait for key
+    mov ah, 0x00
+    int 0x16
+    
+    call clear_screen
     ret
 
-admin_access_granted:
-    mov si, admin_welcome_msg
+.admin_fail:
+    mov si, admin_fail_msg
     call print_string
-    mov si, admin_menu_msg
-    call print_string
-    call wait_key
     ret
 
-show_about:
-    mov si, about_msg
-    call print_string
-    call wait_key
-    ret
-
-logout_user:
-    mov si, logout_msg
-    call print_string
-    call wait_key
-    jmp show_login
-
+; Shutdown system
 shutdown_system:
     mov si, shutdown_msg
     call print_string
-    call wait_key
     
-    ; Attempt ACPI shutdown
-    mov ax, 0x2000
-    mov dx, 0x604
-    out dx, ax
-    
-    ; If ACPI fails, halt
+    ; Halt system
     cli
     hlt
 
-; ============================================================================
-; UTILITY FUNCTIONS
-; ============================================================================
+; Utility functions
+clear_screen:
+    mov ax, 0x0003
+    int 0x10
+    ret
+
+newline:
+    mov si, newline_str
+    call print_string
+    ret
 
 print_string:
+    mov ah, 0x0E
+    mov bh, 0
+    mov bl, 0x0F
+.loop:
+    lodsb
+    cmp al, 0
+    je .done
+    int 0x10
+    jmp .loop
+.done:
+    ret
+
+print_string_color:
     mov ah, 0x0E
     mov bh, 0
     mov bl, 0x0A  ; Bright green
@@ -423,40 +447,44 @@ print_string:
 .done:
     ret
 
-print_newline:
-    mov ah, 0x0E
-    mov al, 13
-    int 0x10
-    mov al, 10
-    int 0x10
-    ret
-
 get_input:
-    push di
-    mov cx, 0
-.loop:
-    call get_key
+    mov di, input_buffer
+    xor cx, cx
+
+.input_loop:
+    mov ah, 0x00
+    int 0x16
+    
     cmp al, 13  ; Enter key
     je .done
+    
     cmp al, 8   ; Backspace
     je .backspace
-    cmp cx, 63  ; Max length
-    jge .loop
+    
+    ; Regular character
+    cmp cx, 79  ; Max input length
+    jae .input_loop
     
     ; Store character
-    stosb
+    mov [di], al
+    inc di
     inc cx
     
     ; Echo character
     mov ah, 0x0E
+    mov bh, 0
+    mov bl, 0x0F
     int 0x10
-    jmp .loop
+    
+    jmp .input_loop
 
 .backspace:
     cmp cx, 0
-    je .loop
+    je .input_loop
+    
     dec di
     dec cx
+    mov byte [di], 0
     
     ; Move cursor back and clear character
     mov ah, 0x0E
@@ -466,44 +494,101 @@ get_input:
     int 0x10
     mov al, 8
     int 0x10
-    jmp .loop
+    
+    jmp .input_loop
 
 .done:
-    mov al, 0
-    stosb
-    call print_newline
+    mov byte [di], 0
+    call newline
+    ret
+
+get_string:
+    push di
+    xor cx, cx
+
+.input_loop:
+    mov ah, 0x00
+    int 0x16
+    
+    cmp al, 13  ; Enter
+    je .done
+    
+    cmp al, 8   ; Backspace
+    je .backspace
+    
+    cmp cx, 31  ; Max length
+    jae .input_loop
+    
+    mov [di], al
+    inc di
+    inc cx
+    
+    ; Echo
+    mov ah, 0x0E
+    int 0x10
+    
+    jmp .input_loop
+
+.backspace:
+    cmp cx, 0
+    je .input_loop
+    
+    dec di
+    dec cx
+    mov byte [di], 0
+    
+    mov ah, 0x0E
+    mov al, 8
+    int 0x10
+    mov al, ' '
+    int 0x10
+    mov al, 8
+    int 0x10
+    
+    jmp .input_loop
+
+.done:
+    mov byte [di], 0
+    call newline
     pop di
     ret
 
-get_input_hidden:
+get_string_hidden:
     push di
-    mov cx, 0
-.loop:
-    call get_key
-    cmp al, 13  ; Enter key
+    xor cx, cx
+
+.input_loop:
+    mov ah, 0x00
+    int 0x16
+    
+    cmp al, 13  ; Enter
     je .done
+    
     cmp al, 8   ; Backspace
     je .backspace
-    cmp cx, 63  ; Max length
-    jge .loop
     
-    ; Store character
-    stosb
+    cmp cx, 31  ; Max length
+    jae .input_loop
+    
+    mov [di], al
+    inc di
     inc cx
     
     ; Echo asterisk
     mov ah, 0x0E
     mov al, '*'
     int 0x10
-    jmp .loop
+    
+    jmp .input_loop
 
 .backspace:
     cmp cx, 0
-    je .loop
+    je .input_loop
+    
     dec di
     dec cx
+    mov byte [di], 0
     
-    ; Move cursor back and clear character
     mov ah, 0x0E
     mov al, 8
     int 0x10
@@ -511,172 +596,163 @@ get_input_hidden:
     int 0x10
     mov al, 8
     int 0x10
-    jmp .loop
+    
+    jmp .input_loop
 
 .done:
-    mov al, 0
-    stosb
-    call print_newline
+    mov byte [di], 0
+    call newline
     pop di
-    ret
-
-get_key:
-    mov ah, 0x00
-    int 0x16
-    ret
-
-wait_key:
-    mov si, press_key_msg
-    call print_string
-    call get_key
-    call print_newline
     ret
 
 compare_strings:
     push si
     push di
-.loop:
-    lodsb
-    mov bl, al
-    mov al, [di]
-    inc di
+
+.compare_loop:
+    mov al, [si]
+    mov bl, [di]
+    
     cmp al, bl
     jne .not_equal
+    
     cmp al, 0
     je .equal
-    jmp .loop
-.not_equal:
-    mov al, 0
-    jmp .done
+    
+    inc si
+    inc di
+    jmp .compare_loop
+
 .equal:
-    mov al, 1
-.done:
     pop di
     pop si
+    mov al, 1
     ret
 
-; ============================================================================
-; DATA SECTION
-; ============================================================================
+.not_equal:
+    pop di
+    pop si
+    mov al, 0
+    ret
 
-; System flags
-first_boot db 1
+save_setup_flag:
+    ; This would write to disk in a real implementation
+    ret
 
-; User data
-username db 'admin', 0
-times 60 db 0
-password db 'admin', 0
-times 60 db 0
-admin_password db 'root', 0
-times 60 db 0
+; Data section
+header_msg          db '  ╔══════════════════════════════════════════════════════════════════════════════╗', 13, 10
+                    db '  ║                        OmniOS 2.0 Professional Edition                      ║', 13, 10
+                    db '  ╚══════════════════════════════════════════════════════════════════════════════╝', 13, 10, 0
 
-; Input buffers
-input_username times 64 db 0
-input_password times 64 db 0
-admin_password_input times 64 db 0
-command_buffer times 128 db 0
+version_msg         db '                           Enhanced Operating System v2.0', 13, 10, 13, 10, 0
 
-; Messages
-header_msg db '================================================================================', 13, 10
-           db '                           OmniOS 2.0 Professional Edition                    ', 13, 10
-           db '                              Enhanced Operating System                        ', 13, 10
-           db '================================================================================', 13, 10, 13, 10, 0
+setup_welcome       db '╔═══════════════════════════════════════════════════════════════════════════════╗', 13, 10
+                    db '║                            FIRST BOOT SETUP                                  ║', 13, 10
+                    db '╚═══════════════════════════════════════════════════════════════════════════════╝', 13, 10, 0
 
-welcome_msg db 'Welcome to OmniOS 2.0 Professional Edition!', 13, 10
-            db 'Type "help" for available commands.', 13, 10, 13, 10, 0
+setup_msg1          db 'Welcome to OmniOS 2.0! This appears to be your first boot.', 13, 10
+                    db 'Let''s set up your system. Press any key to continue...', 13, 10, 0
 
-current_user_msg db 'Current user: ', 0
+create_user_msg     db 13, 10, 'Creating your user account:', 13, 10, 0
+username_prompt     db 'Enter username: ', 0
+password_prompt     db 'Enter password: ', 0
+account_created_msg db 13, 10, 'Account created successfully! Press any key to continue...', 13, 10, 0
 
-first_boot_title db '================================================================================', 13, 10
-                 db '                        OmniOS 2.0 - First Boot Setup                         ', 13, 10
-                 db '================================================================================', 13, 10, 13, 10, 0
+login_header        db '╔═══════════════════════════════════════════════════════════════════════════════╗', 13, 10
+                    db '║                              USER LOGIN                                      ║', 13, 10
+                    db '╚═══════════════════════════════════════════════════════════════════════════════╝', 13, 10, 0
 
-first_boot_welcome db 'Welcome to OmniOS 2.0! This appears to be your first boot.', 13, 10
-                   db 'Let''s set up your system with initial configuration.', 13, 10, 13, 10, 0
+login_username      db 'Username: ', 0
+login_password      db 'Password: ', 0
+login_failed        db 13, 10, 'Login failed! Please try again.', 13, 10, 13, 10, 0
+login_success_msg   db 13, 10, 'Login successful! Welcome to OmniOS 2.0', 13, 10, 0
 
-setup_username_prompt db 'Enter your username: ', 0
-setup_password_prompt db 'Enter your password: ', 0
-setup_complete_msg db 13, 10, 'Setup complete! Press any key to continue...', 13, 10, 0
+prompt              db 13, 10, 'OmniOS> ', 0
 
-login_title db '================================================================================', 13, 10
-            db '                            OmniOS 2.0 - User Login                           ', 13, 10
-            db '================================================================================', 13, 10, 13, 10, 0
+help_header         db '╔═══════════════════════════════════════════════════════════════════════════════╗', 13, 10
+                    db '║                              HELP SYSTEM                                     ║', 13, 10
+                    db '╚═══════════════════════════════════════════════════════════════════════════════╝', 13, 10, 0
 
-login_prompt db 'Please log in to continue.', 13, 10, 13, 10, 0
-username_prompt db 'Username: ', 0
-password_prompt db 'Password: ', 0
-login_success_msg db 13, 10, 'Login successful! Press any key to continue...', 13, 10, 0
-login_failed_msg db 13, 10, 'Login failed! Press any key to try again...', 13, 10, 0
+help_commands       db 'Available Commands:', 13, 10
+                    db '  help      - Show this help system', 13, 10
+                    db '  clear     - Clear the screen', 13, 10
+                    db '  info      - Show system information', 13, 10
+                    db '  settings  - Open settings menu', 13, 10
+                    db '  admin     - Enter administrator mode', 13, 10
+                    db '  shutdown  - Shutdown the system', 13, 10, 13, 10
+                    db 'Press any key to continue...', 13, 10, 0
 
-prompt db 'OmniOS> ', 0
+info_header         db '╔═══════════════════════════════════════════════════════════════════════════════╗', 13, 10
+                    db '║                           SYSTEM INFORMATION                                 ║', 13, 10
+                    db '╚═══════════════════════════════════════════════════════════════════════════════╝', 13, 10, 0
+
+system_info         db 'OmniOS 2.0 Professional Edition', 13, 10
+                    db 'Version: 2.0.0', 13, 10
+                    db 'Architecture: x86 (16-bit)', 13, 10
+                    db 'Memory: 16MB', 13, 10
+                    db 'Features: User Authentication, Settings, Admin Mode', 13, 10, 13, 10
+                    db 'Press any key to continue...', 13, 10, 0
+
+settings_header     db '╔═══════════════════════════════════════════════════════════════════════════════╗', 13, 10
+                    db '║                              SETTINGS MENU                                   ║', 13, 10
+                    db '╚═══════════════════════════════════════════════════════════════════════════════╝', 13, 10, 0
+
+settings_menu       db '1. Change Theme', 13, 10
+                    db '2. Change Password', 13, 10
+                    db '3. Factory Reset', 13, 10
+                    db '4. Exit Settings', 13, 10, 13, 10
+                    db 'Select option (1-4): ', 0
+
+theme_msg           db 13, 10, 'Changing theme...', 13, 10, 0
+theme_changed       db 'Theme changed successfully! Press any key...', 13, 10, 0
+
+new_password_msg    db 13, 10, 'Enter new password: ', 0
+password_changed    db 13, 10, 'Password changed successfully! Press any key...', 13, 10, 0
+
+reset_warning       db 13, 10, 'WARNING: This will erase all user data!', 13, 10
+                    db 'Are you sure? (Y/N): ', 0
+reset_cancelled     db 13, 10, 'Factory reset cancelled.', 13, 10, 0
+reset_complete      db 13, 10, 'Factory reset complete. Restarting...', 13, 10, 0
+
+admin_password_prompt db 13, 10, 'Enter administrator password: ', 0
+admin_welcome       db '╔═══════════════════════════════════════════════════════════════════════════════╗', 13, 10
+                    db '║                          ADMINISTRATOR MODE                                  ║', 13, 10
+                    db '╚═══════════════════════════════════════════════════════════════════════════════╝', 13, 10, 0
+
+admin_commands      db 'Administrator commands available:', 13, 10
+                    db '  - System diagnostics', 13, 10
+                    db '  - User management', 13, 10
+                    db '  - System configuration', 13, 10, 13, 10
+                    db 'Press any key to exit admin mode...', 13, 10, 0
+
+admin_fail_msg      db 13, 10, 'Access denied! Invalid administrator password.', 13, 10, 0
+
+shutdown_msg        db 13, 10, 'Shutting down OmniOS 2.0...', 13, 10
+                    db 'It is now safe to turn off your computer.', 13, 10, 0
+
+unknown_cmd         db 'Unknown command. Type "help" for available commands.', 13, 10, 0
+newline_str         db 13, 10, 0
 
 ; Command strings
-cmd_help_str db 'help', 0
-cmd_clear_str db 'clear', 0
-cmd_settings_str db 'settings', 0
-cmd_admin_str db 'admin', 0
-cmd_about_str db 'about', 0
-cmd_logout_str db 'logout', 0
-cmd_shutdown_str db 'shutdown', 0
+cmd_help            db 'help', 0
+cmd_clear           db 'clear', 0
+cmd_info            db 'info', 0
+cmd_settings        db 'settings', 0
+cmd_admin           db 'admin', 0
+cmd_shutdown        db 'shutdown', 0
 
-help_msg db 'Available commands:', 13, 10
-         db '  help      - Show this help message', 13, 10
-         db '  clear     - Clear the screen', 13, 10
-         db '  settings  - Open settings menu', 13, 10
-         db '  admin     - Enter administrator mode', 13, 10
-         db '  about     - Show system information', 13, 10
-         db '  logout    - Log out current user', 13, 10
-         db '  shutdown  - Shutdown the system', 13, 10, 13, 10, 0
+; Admin password
+admin_pass          db 'admin', 0
 
-unknown_command_msg db 'Unknown command. Type "help" for available commands.', 13, 10, 0
+; Variables
+first_boot          db 1
+current_theme       db 0
+username            times 32 db 0
+password            times 32 db 0
+input_username      times 32 db 0
+input_password      times 32 db 0
+admin_input         times 32 db 0
+input_buffer        times 80 db 0
 
-settings_title db '================================================================================', 13, 10
-               db '                              Settings Menu                                    ', 13, 10
-               db '================================================================================', 13, 10, 13, 10, 0
-
-settings_menu db '1. Change Theme', 13, 10
-              db '2. Change Password', 13, 10
-              db '3. System Information', 13, 10
-              db '4. Factory Reset', 13, 10
-              db '5. Return to Main Menu', 13, 10, 13, 10
-              db 'Select option (1-5): ', 0
-
-theme_msg db 13, 10, 'Theme changed to Professional Black! Press any key...', 13, 10, 0
-change_pass_msg db 13, 10, 'Enter new password: ', 0
-password_changed_msg db 13, 10, 'Password changed successfully! Press any key...', 13, 10, 0
-
-system_info_msg db 13, 10, 'System Information:', 13, 10
-                db '  OS: OmniOS 2.0 Professional Edition', 13, 10
-                db '  Version: 2.0.0', 13, 10
-                db '  Architecture: x86 16-bit', 13, 10
-                db '  Memory: 16MB', 13, 10
-                db '  Features: Enhanced UI, Authentication, Settings', 13, 10
-                db 13, 10, 'Press any key...', 13, 10, 0
-
-factory_reset_msg db 13, 10, 'WARNING: This will reset all settings!', 13, 10
-                  db 'Continue? (y/N): ', 0
-
-factory_reset_confirm_msg db 13, 10, 'Factory reset complete! Press any key to restart setup...', 13, 10, 0
-
-admin_prompt_msg db 13, 10, 'Enter administrator password: ', 0
-admin_access_denied_msg db 13, 10, 'Access denied! Press any key...', 13, 10, 0
-admin_welcome_msg db 13, 10, 'Administrator access granted!', 13, 10, 0
-admin_menu_msg db 'Administrator features available.', 13, 10
-               db 'Press any key to continue...', 13, 10, 0
-
-about_msg db 13, 10, 'OmniOS 2.0 Professional Edition', 13, 10
-          db 'Enhanced Operating System', 13, 10
-          db 'Built with professional design and features', 13, 10
-          db 'Copyright 2024 OmniOS Development Team', 13, 10
-          db 13, 10, 'Press any key...', 13, 10, 0
-
-logout_msg db 13, 10, 'Logging out... Press any key...', 13, 10, 0
-
-shutdown_msg db 13, 10, 'Shutting down OmniOS 2.0...', 13, 10
-             db 'Thank you for using OmniOS!', 13, 10
-             db 'Press any key...', 13, 10, 0
-
-press_key_msg db 'Press any key...', 0
-
-; Pad to ensure proper size
-times 4096-($-$$) db 0
+; Pad kernel to exact size
+times 9216-($-$$) db 0
