@@ -66,13 +66,20 @@ floppy: bootloader kernel
 	# Format with FAT12
 	$(MKFS) -F 12 -n "OMNIOS20" $(BUILD_DIR)/omnios.img >/dev/null 2>&1
 	
-	# Install bootloader
+	# Install bootloader (sector 1)
 	$(DD) if=$(BUILD_DIR)/bootloader.bin of=$(BUILD_DIR)/omnios.img conv=notrunc 2>/dev/null
 	
-	# Install kernel (starting at sector 2)
+	# Install kernel starting at sector 2 (skip bootloader)
 	$(DD) if=$(BUILD_DIR)/kernel.bin of=$(BUILD_DIR)/omnios.img bs=512 seek=1 conv=notrunc 2>/dev/null
 	
-	@echo -e "$(GREEN)OmniOS Enhanced Edition created: $(BUILD_DIR)/omnios.img$(NC)"
+	# Verify the image was created
+	@if [ -f $(BUILD_DIR)/omnios.img ]; then \
+		echo -e "$(GREEN)OmniOS Enhanced Edition created: $(BUILD_DIR)/omnios.img$(NC)"; \
+		echo -e "$(BLUE)Image size: $$(ls -lh $(BUILD_DIR)/omnios.img | awk '{print $$5}')$(NC)"; \
+	else \
+		echo -e "$(RED)Failed to create disk image!$(NC)"; \
+		exit 1; \
+	fi
 
 # Clean build artifacts
 .PHONY: clean

@@ -2,6 +2,42 @@
 [BITS 16]
 [ORG 0x0000]
 
+; Kernel entry point - this is where bootloader jumps
+kernel_start:
+    ; Set up segments properly
+    mov ax, 0x1000      ; We're loaded at 0x1000:0x0000
+    mov ds, ax
+    mov es, ax
+    mov ss, ax
+    mov sp, 0xFFFE      ; Set stack at top of segment
+    
+    ; Clear interrupts during setup
+    cli
+    
+    ; Initialize system
+    call init_system
+    call show_welcome
+    call init_filesystem
+    
+    ; Re-enable interrupts
+    sti
+    
+    ; Set initial state
+    mov si, root_path
+    mov di, current_dir
+    call strcpy
+    mov byte [admin_mode], 0
+    mov byte [system_running], 1
+    
+    ; Main command loop
+    call command_loop
+    
+    ; System halt
+    jmp halt_system
+
+; Add kernel signature at the beginning for verification
+kernel_signature db 'OMNIOS20', 0
+
 section .bss
     command_buffer resb 256
     buffer_len resb 1
@@ -15,7 +51,7 @@ section .bss
 
 section .text
 
-jmp Main
+jmp kernel_start
 
 ; Include system modules
 %INCLUDE "src/kernel/print.asm"
@@ -1416,6 +1452,6 @@ cut_msg             db 'Cut to clipboard: ', 0
 cut_usage           db 'Usage: cut <filename>', 0
 
 copy_msg            db 'Copied to clipboard: ', 0
-copy_usage          db 'Usage: copy <filename>', 0
+copy_usage           db 'Usage: copy <filename>', 0
 
 halt_msg            db 'System halted. Safe to power off.', 0
