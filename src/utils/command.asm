@@ -1,4 +1,4 @@
-%INCLUDE "src/tui/welcome.asm"
+; OmniOS 2.0 Command Processor
 command:
     
 .readkeys:
@@ -29,7 +29,6 @@ command:
 
     jmp .readkeys
 
-
 .handle_backspace:
     mov bx, [buffer_len]       ; Move buffer length to BX
     cmp bx, 0                  ; Check if buffer is empty
@@ -39,12 +38,11 @@ command:
     mov ah, 0x0e
     mov al, 0x08               ; Move back
     int 10h
-    mov al, ''                 ; Erase character
+    mov al, ' '                ; Erase character
     int 10h
     mov al, 0x08               ; Move back again
     int 10h
     jmp .readkeys
-
 
 .handler:
     mov si, buffer
@@ -64,7 +62,7 @@ command:
 
     mov si, buffer
     mov di, cmd_echo
-    mov cx, 5
+    mov cx, 4
     repe cmpsb
     je .cmdecho
 
@@ -87,12 +85,6 @@ command:
     je .cmdver
 
     mov si, buffer
-    mov di, cmd_tui
-    mov cx, 3
-    repe cmpsb
-    je .cmdtui
-
-    mov si, buffer
     mov di, cmd_ls
     mov cx, 2
     repe cmpsb
@@ -100,27 +92,24 @@ command:
 
     mov si, buffer
     mov di, cmd_type
-    mov cx, 5
+    mov cx, 4
     repe cmpsb
     je .cmdtype
 
     mov si, failure_cmd
     jmp .fail
+
 .cmdls:
     call print_root
     jmp .end2
+
 .cmdtype:
     mov si, buffer
     add si, 5
     mov cx, 11
     call to_uppercase
-
     call convt_filename
-    
-    ;call find_file
     jc .file_not_found
-
-    ;call print_file_contents
     jmp .end
 
 .file_not_found:
@@ -133,11 +122,11 @@ command:
     call println
     mov si, cmdout_ver_2
     call println
-	mov si, sys_ver
+    mov si, sys_ver
     call print
     mov si, cmdout_ver_3
     call println
-	mov si, cmdout_ver_4
+    mov si, cmdout_ver_4
     call println
     jmp .end
 
@@ -147,11 +136,6 @@ command:
     dw 0xffff
 
 .cmdcls:
-    call cls
-    jmp .end2
-
-.cmdtui:
-    call tui_init
     call cls
     jmp .end2
 
@@ -167,8 +151,8 @@ command:
     mov si, cmdout_help_6
     call println
     mov si, cmdout_help_7
-	call println
-	mov si, cmdout_help_8
+    call println
+    mov si, cmdout_help_8
     call println
     jmp .end
 
@@ -219,7 +203,7 @@ command:
     call newln
 
     mov si, uname
-    call println
+    call print
     mov si, prompt_symb
     call print
     
@@ -237,35 +221,27 @@ command:
     mov byte [buffer_len], 0  ; Reset buffer length to 0
 
     mov si, uname
-    call println
+    call print
     mov si, prompt_symb
     call print
     
     jmp command
 
-comparecmd:
-
-
 ; Command inputs
-cmd_help db 'menu', 0
-cmd_echo db 'echo ', 0
-cmd_cls db 'cla', 0
+cmd_help db 'help', 0
+cmd_echo db 'echo', 0
+cmd_cls db 'cls', 0
 cmd_shutdown db 'shutdown', 0
 cmd_ver db 'ver', 0
-cmd_tui db 'ui', 0
-
 cmd_extr db '-r', 0
-
 cmd_ls db 'ls', 0
-
-cmd_type db 'type ', 0
-
+cmd_type db 'type', 0
 
 ; Command outputs
-cmdout_help_1 db '--------        (=) MENU              --------', 0
-cmdout_help_2 db ' (=) menu     : Displays the available commands.', 0
+cmdout_help_1 db '--------        (=) HELP              --------', 0
+cmdout_help_2 db ' (=) help     : Displays the available commands.', 0
 cmdout_help_3 db ' (a) echo     : Repeats the entered text.', 0
-cmdout_help_5 db ' (x) cla      : Clears the screen.', 0
+cmdout_help_5 db ' (x) cls      : Clears the screen.', 0
 cmdout_help_6 db ' (|) shutdown : Turns off your PC. Run -r to reboot.', 0
 cmdout_help_7 db ' (i) ver      : Displays the system version.', 0
 cmdout_help_8 db '----------------------------------------------', 0
@@ -277,4 +253,4 @@ cmdout_ver_4 db '----------------------------------------------', 0
 
 ; --- fail ---
 cmd_none db '', 0
-failure_cmd db " (?) Hmm, I didn't understand what you meant.", 0
+failure_cmd db " (?) Command not found.", 0

@@ -1,6 +1,10 @@
 ; OmniOS 2.0 Enhanced Kernel with Complete Command Set
 [BITS 16]
-[ORG 0x0000]
+[ORG 0x1000]
+
+%INCLUDE "src/utils/print.asm"
+%INCLUDE "src/utils/command.asm"
+%INCLUDE "src/utils/setup.asm"
 
 ; Kernel entry point - this is where bootloader jumps
 kernel_start:
@@ -12,16 +16,39 @@ kernel_start:
     mov sp, 0xFFFF      ; Set stack at top of segment
     
     ; Clear screen with black background
-    call clear_screen_black
+    call cls
+    
+    ; Display welcome message
+    mov si, welcome_msg
+    call print
+    call newln
     
     ; Display OmniOS banner
     mov si, omnios_banner
     call print_string
     
+    ; Display system info
+    mov si, system_info
+    call print
+    call newln
+    
     ; Initialize system
     call init_system
     
+    ; Setup user
+    call setup_user
+    
     ; Start command loop
+    jmp start_shell
+
+start_shell:
+    ; Display prompt
+    mov si, uname
+    call print
+    mov si, prompt_symb
+    call print
+    
+    ; Start command processor
     jmp command_loop
 
 clear_screen_black:
@@ -95,6 +122,27 @@ init_system:
     call newline
     ret
 
+setup_user:
+    ; Setup user name and length
+    mov si, uname
+    mov di, uname_len
+    call calculate_length
+    ret
+
+calculate_length:
+    pusha
+    mov cx, 0
+.loop:
+    lodsb
+    cmp al, 0
+    je .done
+    inc cx
+    jmp .loop
+.done:
+    mov [di], cl
+    popa
+    ret
+
 command_loop:
     ; Display prompt
     mov si, prompt
@@ -111,7 +159,7 @@ command_loop:
 
 get_input:
     pusha
-    mov di, input_buffer
+    mov di, buffer
     mov cx, 0
     
 .input_loop:
@@ -128,7 +176,7 @@ get_input:
     je .backspace
     
     ; Check buffer limit
-    cmp cx, 79
+    cmp cx, 254
     jge .input_loop
     
     ; Store character
@@ -171,35 +219,35 @@ process_command:
     pusha
     
     ; Check for help command
-    mov si, input_buffer
+    mov si, buffer
     mov di, cmd_help
     call compare_strings
     cmp ax, 1
     je .show_help
     
     ; Check for ls command
-    mov si, input_buffer
+    mov si, buffer
     mov di, cmd_ls
     call compare_strings
     cmp ax, 1
     je .list_files
     
     ; Check for clear command
-    mov si, input_buffer
+    mov si, buffer
     mov di, cmd_clear
     call compare_strings
     cmp ax, 1
     je .clear_screen
     
     ; Check for exit command
-    mov si, input_buffer
+    mov si, buffer
     mov di, cmd_exit
     call compare_strings
     cmp ax, 1
     je .exit_system
     
     ; Check for version command
-    mov si, input_buffer
+    mov si, buffer
     mov di, cmd_version
     call compare_strings
     cmp ax, 1
@@ -218,7 +266,7 @@ process_command:
     jmp .done
 
 .list_files:
-    mov si, file_list
+    mov si, root_files
     call print_string
     call newline
     jmp .done
@@ -272,15 +320,17 @@ compare_strings:
     ret
 
 ; Data section
+welcome_msg db 'Welcome to OmniOS 2.0!', 0
 omnios_banner    db '╔══════════════════════════════════════════════════════════════╗', 0x0D, 0x0A
                  db '║                        OmniOS 2.0                           ║', 0x0D, 0x0A
                  db '║                  Enhanced Command Edition                   ║', 0x0D, 0x0A
                  db '╚══════════════════════════════════════════════════════════════╝', 0x0D, 0x0A, 0x0A, 0
 
-system_info      db 'System initialized successfully!', 0x0D, 0x0A
+system_info      db 'OmniOS 2.0 - Enhanced Command Edition', 0x0D, 0x0A
                  db 'Type "help" for available commands.', 0x0D, 0x0A, 0
 
 prompt           db 'OmniOS> ', 0
+prompt_symb      db ':(User)> ', 0
 
 help_msg         db 'Available commands: help, ls, clear, version, exit', 0
 
@@ -291,15 +341,10 @@ help_text        db 'OmniOS 2.0 Commands:', 0x0D, 0x0A
                  db '  version - Show system version', 0x0D, 0x0A
                  db '  exit    - Exit the system', 0x0D, 0x0A, 0
 
-file_list        db 'Files and directories:', 0x0D, 0x0A
-                 db '  /system/    - System files', 0x0D, 0x0A
-                 db '  /apps/      - Applications', 0x0D, 0x0A
-                 db '  /docs/      - Documentation', 0x0D, 0x0A
-                 db '  /temp/      - Temporary files', 0x0D, 0x0A, 0
-
-version_info     db 'OmniOS 2.0.0 Enhanced Command Edition', 0x0D, 0x0A
-                 db 'Build: 2025.01.23', 0x0D, 0x0A
-                 db 'Kernel: Enhanced Assembly Kernel', 0x0D, 0x0A, 0
+root_files       db 'README.TXT', 0x0D, 0x0A
+                 db 'SYSTEM.CFG', 0x0D, 0x0A
+                 db 'BOOT.LOG', 0x0D, 0x0A
+                 db 'USER.DAT', 0x0D, 0x0A, 0
 
 unknown_cmd      db 'Unknown command. Type "help" for available commands.', 0
 
@@ -313,8 +358,13 @@ cmd_exit         db 'exit', 0
 cmd_version      db 'version', 0
 
 ; Variables
-input_buffer     times 80 db 0
+buffer           times 255 db 0
+buffer_len       db 0
+orig_case        times 255 db 0
+uname            db 'OmniOS', 0
+uname_len        db 0
 temp_result      dw 0
+temp_buffer      times 12 db 0
 
 ; Padding
 times 4096-($-$$) db 0

@@ -36,7 +36,7 @@ username:
     mov ah, 0x0e
     mov al, 0x08               ; Move back
     int 10h
-    mov al, ''                 ; Erase character
+    mov al, ' '                ; Erase character
     int 10h
     mov al, 0x08               ; Move back again
     int 10h
@@ -44,4 +44,24 @@ username:
 
 
 .handler:
+    call setup_user            ; Call user setup routine
+    ret
+
+; OmniOS 2.0 User Setup
+setup_user:
+    ; Simple user setup - just set default username
+    mov si, setup_msg
+    call print
+    call newln
+    ret
+
+setup_msg db 'User setup complete.', 0
+
+; Dummy print and newln functions for illustration
+print:
+    ; Placeholder for print function
+    ret
+
+newln:
+    ; Placeholder for newln function
     ret
