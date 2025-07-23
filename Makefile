@@ -16,14 +16,16 @@ LDFLAGS = -m elf_i386 -nostdlib
 # Directories
 SRC_DIR = src
 BUILD_DIR = build
+BOOT_DIR = $(SRC_DIR)/boot
+KERNEL_DIR = $(SRC_DIR)/kernel
 OBJ_DIR = $(BUILD_DIR)/obj
 BIN_DIR = $(BUILD_DIR)/bin
 IMG_DIR = $(BUILD_DIR)/images
 
 # Source files
-BOOT_ASM_SOURCES = $(wildcard $(SRC_DIR)/boot/*.asm)
-KERNEL_C_SOURCES = $(wildcard $(SRC_DIR)/kernel/*.c) $(wildcard $(SRC_DIR)/kernel/*/*.c)
-KERNEL_ASM_SOURCES = $(wildcard $(SRC_DIR)/kernel/*.asm)
+BOOT_ASM_SOURCES = $(wildcard $(BOOT_DIR)/*.asm)
+KERNEL_C_SOURCES = $(wildcard $(KERNEL_DIR)/*.c) $(wildcard $(KERNEL_DIR)/*/*.c)
+KERNEL_ASM_SOURCES = $(wildcard $(KERNEL_DIR)/*.asm)
 DRIVER_SOURCES = $(wildcard $(SRC_DIR)/drivers/*.c) $(wildcard $(SRC_DIR)/drivers/*/*.c)
 APP_SOURCES = $(wildcard $(SRC_DIR)/apps/*/*.c)
 FS_SOURCES = $(wildcard $(SRC_DIR)/fs/*.c)
@@ -60,9 +62,15 @@ CYAN = \033[0;36m
 WHITE = \033[1;37m
 NC = \033[0m
 
+# Tools
+NASM = nasm
+DD = dd
+MKFS = mkfs.fat
+MCOPY = mcopy
+
 # Default target
 .PHONY: all
-all: increment-version bootloader kernel filesystem omnios-image
+all: clean setup bootloader kernel floppy
 
 # Print build banner
 .PHONY: banner
@@ -87,20 +95,25 @@ $(OBJ_DIR) $(BIN_DIR) $(IMG_DIR):
 	@mkdir -p $(OBJ_DIR)/boot $(OBJ_DIR)/kernel $(OBJ_DIR)/drivers $(OBJ_DIR)/apps
 	@mkdir -p $(OBJ_DIR)/fs $(OBJ_DIR)/ui $(OBJ_DIR)/security
 
+# Setup build environment
+.PHONY: setup
+setup:
+	@echo "Setting up build environment..."
+	@mkdir -p $(BUILD_DIR)
+
 # Bootloader
 .PHONY: bootloader
-bootloader: $(OBJ_DIR) $(BIN_DIR)
+bootloader: setup
 	@echo -e "$(YELLOW)Building bootloader...$(NC)"
-	$(AS) -f bin -o $(BIN_DIR)/bootloader.bin $(SRC_DIR)/boot/bootloader.asm
-	$(AS) -f bin -o $(BIN_DIR)/stage2.bin $(SRC_DIR)/boot/stage2.asm
+	$(NASM) -f bin -o $(BUILD_DIR)/bootloader.bin $(BOOT_DIR)/bootloader.asm
 	@echo -e "$(GREEN)Bootloader built successfully$(NC)"
 
 # Kernel
 .PHONY: kernel
-kernel: $(OBJ_DIR) $(BIN_DIR) $(ALL_OBJECTS)
+kernel: setup
 	@echo -e "$(YELLOW)Linking kernel...$(NC)"
-	$(LD) $(LDFLAGS) -T $(SRC_DIR)/kernel/linker.ld -o $(BIN_DIR)/kernel.elf $(ALL_OBJECTS)
-	$(OBJCOPY) -O binary $(BIN_DIR)/kernel.elf $(BIN_DIR)/kernel.bin
+	$(LD) $(LDFLAGS) -T $(KERNEL_DIR)/linker.ld -o $(BUILD_DIR)/kernel.elf $(ALL_OBJECTS)
+	$(OBJCOPY) -O binary $(BUILD_DIR)/kernel.elf $(BUILD_DIR)/kernel.bin
 	@echo -e "$(GREEN)Kernel built successfully$(NC)"
 
 # C source compilation
@@ -171,29 +184,29 @@ create-sample-opi:
 	@echo -e "$(GREEN)Sample .opi package created$(NC)"
 
 # Create OmniOS disk image
-.PHONY: omnios-image
-omnios-image: $(IMG_DIR) bootloader kernel filesystem
+.PHONY: floppy
+floppy: bootloader kernel
 	@echo -e "$(YELLOW)Creating OmniOS disk image...$(NC)"
 	
 	# Create 2.88MB floppy image
-	dd if=/dev/zero of=$(IMG_DIR)/omnios.img bs=512 count=5760 2>/dev/null
+	$(DD) if=/dev/zero of=$(BUILD_DIR)/omnios.img bs=512 count=2880 2>/dev/null
 	
 	# Format with FAT12
-	mkfs.fat -F 12 -n "OMNIOS20" $(IMG_DIR)/omnios.img >/dev/null 2>&1
+	$(MKFS) -F 12 -n "OMNIOS20" $(BUILD_DIR)/omnios.img >/dev/null 2>&1
 	
 	# Install bootloader
-	dd if=$(BIN_DIR)/bootloader.bin of=$(IMG_DIR)/omnios.img conv=notrunc 2>/dev/null
+	$(DD) if=$(BUILD_DIR)/bootloader.bin of=$(BUILD_DIR)/omnios.img conv=notrunc 2>/dev/null
 	
 	# Install stage 2 bootloader (sectors 2-5)
-	dd if=$(BIN_DIR)/stage2.bin of=$(IMG_DIR)/omnios.img bs=512 seek=1 conv=notrunc 2>/dev/null
+	$(DD) if=$(BUILD_DIR)/stage2.bin of=$(BUILD_DIR)/omnios.img bs=512 seek=1 conv=notrunc 2>/dev/null
 	
 	# Install kernel (sectors 6-50)
-	dd if=$(BIN_DIR)/kernel.bin of=$(IMG_DIR)/omnios.img bs=512 seek=5 conv=notrunc 2>/dev/null
+	$(DD) if=$(BUILD_DIR)/kernel.bin of=$(BUILD_DIR)/omnios.img bs=512 seek=5 conv=notrunc 2>/dev/null
 	
 	# Copy file system files
-	mcopy -i $(IMG_DIR)/omnios.img $(BUILD_DIR)/fs_root/* ::/ 2>/dev/null || true
+	$(MCOPY) -i $(BUILD_DIR)/omnios.img $(BUILD_DIR)/fs_root/* ::/ 2>/dev/null || true
 	
-	@echo -e "$(GREEN)OmniOS disk image created: $(IMG_DIR)/omnios.img$(NC)"
+	@echo -e "$(GREEN)OmniOS disk image created: $(BUILD_DIR)/omnios.img$(NC)"
 
 # Build for Termux
 .PHONY: termux
@@ -238,19 +251,19 @@ install-deps:
 
 # Run in QEMU
 .PHONY: run
-run: omnios-image
+run: all
 	@echo -e "$(CYAN)Starting OmniOS in QEMU...$(NC)"
-	qemu-system-i386 -m 256M -drive format=raw,file=$(IMG_DIR)/omnios.img,if=floppy -boot a
+	qemu-system-i386 -m 256M -drive format=raw,file=$(BUILD_DIR)/omnios.img,if=floppy -boot a
 
 # Run in debug mode
 .PHONY: run-debug
 run-debug: debug
 	@echo -e "$(CYAN)Starting OmniOS in debug mode...$(NC)"
-	qemu-system-i386 -m 256M -drive format=raw,file=$(IMG_DIR)/omnios.img,if=floppy -boot a -s -S
+	qemu-system-i386 -m 256M -drive format=raw,file=$(BUILD_DIR)/omnios.img,if=floppy -boot a -s -S
 
 # Generate build report
 .PHONY: report
-report: omnios-image
+report: all
 	@echo -e "$(BLUE)Generating build report...$(NC)"
 	@echo "OmniOS 2.0 Build Report" > $(BUILD_DIR)/build-report.txt
 	@echo "======================" >> $(BUILD_DIR)/build-report.txt
@@ -260,10 +273,10 @@ report: omnios-image
 	@echo "Build Host: $(shell hostname)" >> $(BUILD_DIR)/build-report.txt
 	@echo "" >> $(BUILD_DIR)/build-report.txt
 	@echo "Components:" >> $(BUILD_DIR)/build-report.txt
-	@echo "- Bootloader: $(shell ls -lh $(BIN_DIR)/bootloader.bin 2>/dev/null | awk '{print $$5}' || echo 'N/A')" >> $(BUILD_DIR)/build-report.txt
-	@echo "- Stage 2: $(shell ls -lh $(BIN_DIR)/stage2.bin 2>/dev/null | awk '{print $$5}' || echo 'N/A')" >> $(BUILD_DIR)/build-report.txt
-	@echo "- Kernel: $(shell ls -lh $(BIN_DIR)/kernel.bin 2>/dev/null | awk '{print $$5}' || echo 'N/A')" >> $(BUILD_DIR)/build-report.txt
-	@echo "- Disk Image: $(shell ls -lh $(IMG_DIR)/omnios.img 2>/dev/null | awk '{print $$5}' || echo 'N/A')" >> $(BUILD_DIR)/build-report.txt
+	@echo "- Bootloader: $(shell ls -lh $(BUILD_DIR)/bootloader.bin 2>/dev/null | awk '{print $$5}' || echo 'N/A')" >> $(BUILD_DIR)/build-report.txt
+	@echo "- Stage 2: $(shell ls -lh $(BUILD_DIR)/stage2.bin 2>/dev/null | awk '{print $$5}' || echo 'N/A')" >> $(BUILD_DIR)/build-report.txt
+	@echo "- Kernel: $(shell ls -lh $(BUILD_DIR)/kernel.bin 2>/dev/null | awk '{print $$5}' || echo 'N/A')" >> $(BUILD_DIR)/build-report.txt
+	@echo "- Disk Image: $(shell ls -lh $(BUILD_DIR)/omnios.img 2>/dev/null | awk '{print $$5}' || echo 'N/A')" >> $(BUILD_DIR)/build-report.txt
 	@echo "" >> $(BUILD_DIR)/build-report.txt
 	@echo "Features:" >> $(BUILD_DIR)/build-report.txt
 	@echo "✓ Modular Architecture" >> $(BUILD_DIR)/build-report.txt
@@ -290,7 +303,7 @@ help:
 	@echo -e "  $(YELLOW)bootloader$(NC)    - Build bootloader only"
 	@echo -e "  $(YELLOW)kernel$(NC)        - Build kernel only"
 	@echo -e "  $(YELLOW)filesystem$(NC)    - Create file system"
-	@echo -e "  $(YELLOW)omnios-image$(NC)  - Create bootable disk image"
+	@echo -e "  $(YELLOW)floppy$(NC)        - Create bootable disk image"
 	@echo ""
 	@echo -e "$(WHITE)Platform Targets:$(NC)"
 	@echo -e "  $(YELLOW)termux$(NC)        - Build for Termux environment"

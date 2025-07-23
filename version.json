@@ -3,8 +3,9 @@
   "minor": 0,
   "patch": 0,
   "build": 1,
-  "version_string": "2.0.0-build.1",
+  "version_string": "2.0.0",
   "codename": "Phoenix",
   "release_date": "2025-01-23",
-  "build_type": "development"
+  "build_type": "stable",
+  "language": "english"
 }
