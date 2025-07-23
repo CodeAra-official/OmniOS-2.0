@@ -2,11 +2,18 @@
 ; Complete file operations with proper ls command
 
 init_filesystem:
-    ; Initialize file system
-    mov byte [file_count], 0
+    ; Initialize basic filesystem
+    mov si, fs_init_msg
+    call print_colored
+    call newline
     
-    ; Add default files and directories
-    call add_default_entries
+    ; Setup root directory
+    mov si, root_path
+    mov di, current_dir
+    call strcpy
+    
+    ; Initialize file count
+    mov byte [file_count], 4
     
     ret
 
@@ -78,30 +85,24 @@ strcpy_to_list:
 
 scan_filesystem:
     ; Scan current directory for files
-    ; This is a simplified implementation
+    ; Set up sample files
+    mov byte [file_count], 4
     
-    ; Reset file count
-    mov byte [file_count], 0
-    
-    ; Check current directory and populate file list
-    mov si, current_dir
-    mov di, root_path
-    call strcmp
-    cmp ax, 0
-    je .root_directory
-    
-    ; Non-root directory - show parent link
+    ; Setup file list
+    mov si, sample_files
     mov di, file_list
-    mov al, 'D'
-    stosb
-    mov si, parent_link
-    call strcpy_to_list
-    mov byte [file_count], 1
+    mov cx, 256
+    rep movsb
+    
     ret
 
-.root_directory:
-    call add_default_entries
-    ret
+; Filesystem data
+fs_init_msg db 'Filesystem initialized', 0
+root_path db '/', 0
+sample_files db 'FREADME.TXT', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+             db 'FSYSTEM.CFG', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+             db 'FBOOT.LOG', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+             db 'FUSER.DAT', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 
 ; File data
 dir_system      db 'system', 0

@@ -11,11 +11,22 @@ if [ ! -f "build/omnios.img" ]; then
     exit 1
 fi
 
-# Try different display modes
-echo "Trying curses display..."
-qemu-system-i386 -drive format=raw,file=build/omnios.img,if=floppy -boot a -display curses 2>/dev/null
+# Kill any existing QEMU processes using the image
+echo "Checking for running processes..."
+pkill -f "omnios.img" 2>/dev/null
 
-if [ $? -ne 0 ]; then
-    echo "Curses failed, trying text mode..."
-    qemu-system-i386 -drive format=raw,file=build/omnios.img,if=floppy -boot a -nographic
-fi
+# Wait for processes to terminate
+sleep 2
+
+# Remove any lock files
+rm -f build/omnios.img.lock 2>/dev/null
+
+echo "No display detected. Using text mode..."
+qemu-system-i386 \
+    -drive format=raw,file=build/omnios.img,if=floppy \
+    -boot a \
+    -nographic \
+    -serial mon:stdio \
+    -no-reboot
+
+echo "OmniOS 2.0 session ended."

@@ -55,13 +55,103 @@ setup_user:
     call newln
     ret
 
-setup_msg db 'User setup complete.', 0
+; OmniOS 2.0 System Setup Functions
+; Initialize system components and user environment
 
-; Dummy print and newln functions for illustration
+init_filesystem:
+    ; Initialize basic filesystem structures
+    mov si, fs_init_msg
+    call print
+    call newln
+    
+    ; Setup root directory
+    mov si, root_path
+    mov di, current_dir
+    call strcpy
+    
+    ; Initialize file count
+    mov byte [file_count], 4
+    
+    ; Setup basic file entries
+    mov si, file_entries
+    mov di, file_list
+    mov cx, 256
+    rep movsb
+    
+    ret
+
+print_root:
+    ; Display root directory contents
+    mov si, root_listing_msg
+    call println
+    
+    mov si, file_entry_1
+    call println
+    
+    mov si, file_entry_2
+    call println
+    
+    mov si, file_entry_3
+    call println
+    
+    mov si, file_entry_4
+    call println
+    
+    ret
+
+scan_filesystem:
+    ; Scan current directory for files
+    ; Simplified implementation
+    mov byte [file_count], 4
+    ret
+
+strcpy:
+    ; Copy string from SI to DI
+    push ax
+    push si
+    push di
+    
+.copy_loop:
+    lodsb
+    stosb
+    cmp al, 0
+    jne .copy_loop
+    
+    pop di
+    pop si
+    pop ax
+    ret
+
+; Data for setup
+fs_init_msg db 'Initializing filesystem...', 0
+root_path db '/', 0
+current_dir times 256 db 0
+
+root_listing_msg db 'Directory listing:', 0
+file_entry_1 db '  README.TXT    1024 bytes', 0
+file_entry_2 db '  SYSTEM.CFG     512 bytes', 0
+file_entry_3 db '  BOOT.LOG       256 bytes', 0
+file_entry_4 db '  USER.DAT       128 bytes', 0
+
+file_entries db 'README.TXT', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+             db 'SYSTEM.CFG', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+             db 'BOOT.LOG', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+             db 'USER.DAT', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+
+file_not_found_msg db 'File not found.', 0
+sys_ver db '2.0.0', 0
+
+file_list times 256 db 0
+file_count db 0
+
 print:
     ; Placeholder for print function
     ret
 
 newln:
     ; Placeholder for newln function
+    ret
+
+println:
+    ; Placeholder for println function
     ret

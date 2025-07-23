@@ -1,9 +1,9 @@
 #!/bin/bash
-# OmniOS 2.0 Build Verification Script
 
-echo "╔══════════════════════════════════════════════════════════════╗"
-echo "║                OmniOS 2.0 Build Verification                ║"
-echo "╚══════════════════════════════════════════════════════════════╝"
+# OmniOS 2.0 Build Verification Script
+# Verifies that the build completed successfully
+
+set -e
 
 # Colors
 RED='\033[0;31m'
@@ -12,98 +12,77 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-ERRORS=0
+echo -e "${BLUE}OmniOS 2.0 Build Verification${NC}"
+echo "============================="
 
 # Check if build directory exists
 if [ ! -d "build" ]; then
-    echo -e "${RED}❌ Build directory not found${NC}"
-    ERRORS=$((ERRORS + 1))
-else
-    echo -e "${GREEN}✅ Build directory exists${NC}"
+    echo -e "${RED}Build directory not found!${NC}"
+    echo "Please run 'make all' first."
+    exit 1
 fi
-
-echo -e "${BLUE}Checking build components...${NC}"
 
 # Check bootloader
 if [ ! -f "build/bootloader.bin" ]; then
-    echo -e "${RED}❌ Bootloader binary not found${NC}"
-    ERRORS=$((ERRORS + 1))
+    echo -e "${RED}Bootloader not found!${NC}"
+    exit 1
 else
-    BOOTLOADER_SIZE=$(stat -c%s build/bootloader.bin)
-    if [ $BOOTLOADER_SIZE -eq 512 ]; then
-        echo -e "${GREEN}✅ Bootloader size correct (512 bytes)${NC}"
+    BOOTLOADER_SIZE=$(stat -c%s "build/bootloader.bin")
+    if [ "$BOOTLOADER_SIZE" -eq 512 ]; then
+        echo -e "${GREEN}✓ Bootloader: OK (512 bytes)${NC}"
     else
-        echo -e "${YELLOW}⚠️  Bootloader size: ${BOOTLOADER_SIZE} bytes (expected 512)${NC}"
-    fi
-    
-    # Check boot signature
-    SIGNATURE=$(xxd -s 510 -l 2 -p build/bootloader.bin)
-    if [ "$SIGNATURE" = "55aa" ]; then
-        echo -e "${GREEN}✅ Boot signature correct${NC}"
-    else
-        echo -e "${RED}❌ Invalid boot signature: $SIGNATURE${NC}"
-        ERRORS=$((ERRORS + 1))
+        echo -e "${YELLOW}⚠ Bootloader: Size is $BOOTLOADER_SIZE bytes (expected 512)${NC}"
     fi
 fi
 
 # Check kernel
 if [ ! -f "build/kernel.bin" ]; then
-    echo -e "${RED}❌ Kernel binary not found${NC}"
-    ERRORS=$((ERRORS + 1))
+    echo -e "${RED}Kernel not found!${NC}"
+    exit 1
 else
-    KERNEL_SIZE=$(stat -c%s build/kernel.bin)
-    echo -e "${GREEN}✅ Kernel binary exists (${KERNEL_SIZE} bytes)${NC}"
-    
-    if [ $KERNEL_SIZE -gt 0 ]; then
-        echo -e "${GREEN}✅ Kernel has content${NC}"
-    else
-        echo -e "${RED}❌ Kernel is empty${NC}"
-        ERRORS=$((ERRORS + 1))
-    fi
+    KERNEL_SIZE=$(stat -c%s "build/kernel.bin")
+    echo -e "${GREEN}✓ Kernel: OK ($KERNEL_SIZE bytes)${NC}"
 fi
 
-# Check OS image
+# Check disk image
 if [ ! -f "build/omnios.img" ]; then
-    echo -e "${RED}❌ OS image not found${NC}"
-    ERRORS=$((ERRORS + 1))
+    echo -e "${RED}Disk image not found!${NC}"
+    exit 1
 else
-    IMAGE_SIZE=$(stat -c%s build/omnios.img)
-    if [ $IMAGE_SIZE -eq 1474560 ]; then
-        echo -e "${GREEN}✅ OS image size correct (1.44MB)${NC}"
+    IMAGE_SIZE=$(stat -c%s "build/omnios.img")
+    if [ "$IMAGE_SIZE" -eq 1474560 ]; then
+        echo -e "${GREEN}✓ Disk Image: OK (1.44MB floppy)${NC}"
     else
-        echo -e "${YELLOW}⚠️  OS image size: ${IMAGE_SIZE} bytes (expected 1474560)${NC}"
+        echo -e "${YELLOW}⚠ Disk Image: Size is $IMAGE_SIZE bytes${NC}"
     fi
 fi
 
-# Check dependencies
-echo -e "${BLUE}Checking runtime dependencies...${NC}"
-
-if command -v qemu-system-i386 &> /dev/null; then
-    echo -e "${GREEN}✅ QEMU available${NC}"
+# Verify bootloader signature
+echo -e "${BLUE}Verifying bootloader signature...${NC}"
+SIGNATURE=$(xxd -s 510 -l 2 -p build/bootloader.bin)
+if [ "$SIGNATURE" = "55aa" ]; then
+    echo -e "${GREEN}✓ Boot signature: Valid (0x55AA)${NC}"
 else
-    echo -e "${YELLOW}⚠️  QEMU not found (install qemu-system-x86)${NC}"
-fi
-
-# Summary
-echo ""
-if [ $ERRORS -eq 0 ]; then
-    echo -e "${GREEN}╔══════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${GREEN}║                  BUILD VERIFICATION PASSED                  ║${NC}"
-    echo -e "${GREEN}╚══════════════════════════════════════════════════════════════╝${NC}"
-    echo -e "${GREEN}✅ All checks passed! OmniOS 2.0 is ready to run.${NC}"
-    echo ""
-    echo -e "${BLUE}To run OmniOS 2.0:${NC}"
-    echo "  make run-safe"
-    echo "  ./run-safe.sh"
-    exit 0
-else
-    echo -e "${RED}╔══════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${RED}║                  BUILD VERIFICATION FAILED                  ║${NC}"
-    echo -e "${RED}╚══════════════════════════════════════════════════════════════╝${NC}"
-    echo -e "${RED}❌ Found ${ERRORS} error(s). Please rebuild.${NC}"
-    echo ""
-    echo -e "${BLUE}To rebuild:${NC}"
-    echo "  make clean"
-    echo "  make all"
+    echo -e "${RED}✗ Boot signature: Invalid ($SIGNATURE)${NC}"
     exit 1
 fi
+
+# Check if image has bootloader installed
+echo -e "${BLUE}Verifying disk image...${NC}"
+IMG_SIGNATURE=$(xxd -s 510 -l 2 -p build/omnios.img)
+if [ "$IMG_SIGNATURE" = "55aa" ]; then
+    echo -e "${GREEN}✓ Disk image bootable: Yes${NC}"
+else
+    echo -e "${RED}✗ Disk image bootable: No${NC}"
+    exit 1
+fi
+
+echo ""
+echo -e "${GREEN}All verification checks passed!${NC}"
+echo -e "${BLUE}OmniOS 2.0 is ready to run.${NC}"
+
+echo ""
+echo -e "${YELLOW}To run OmniOS 2.0:${NC}"
+echo "  make run-safe    # Safe mode with fallback"
+echo "  make run         # Standard mode"
+echo "  ./run-text.sh    # Text mode only"

@@ -1,171 +1,119 @@
 #!/bin/bash
-# OmniOS 2.0 Update Script
 
-echo "╔══════════════════════════════════════════════════════════════╗"
-echo "║                    OmniOS 2.0 Updater                       ║"
-echo "╚══════════════════════════════════════════════════════════════╝"
+# OmniOS 2.0 Update Script
+# Updates system from GitHub repository
+
+set -e
 
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-CYAN='\033[0;36m'
 NC='\033[0m'
 
-REPO_URL="https://github.com/CodeAra-official/OmniOS-2.0.git"
-BACKUP_DIR="omnios_backup_$(date +%Y%m%d_%H%M%S)"
+# Configuration
+GITHUB_REPO="https://github.com/CodeAra-official/OmniOS-2.0.git"
+BACKUP_DIR="backup_$(date +%Y%m%d_%H%M%S)"
 
-# Function to backup current installation
-backup_current() {
-    echo -e "${YELLOW}Creating backup...${NC}"
+echo -e "${BLUE}OmniOS 2.0 Update System${NC}"
+echo "=========================="
+
+# Check if git is available
+if ! command -v git &> /dev/null; then
+    echo -e "${RED}Git is not installed. Please install git to use the update system.${NC}"
+    exit 1
+fi
+
+# Check if we're in a git repository
+if [ ! -d ".git" ]; then
+    echo -e "${YELLOW}This is not a git repository.${NC}"
+    echo -e "${BLUE}Initializing git repository...${NC}"
+    
+    # Create backup of current files
     mkdir -p "$BACKUP_DIR"
+    cp -r src/ "$BACKUP_DIR/" 2>/dev/null || true
+    cp -r docs/ "$BACKUP_DIR/" 2>/dev/null || true
+    cp *.sh "$BACKUP_DIR/" 2>/dev/null || true
+    cp Makefile "$BACKUP_DIR/" 2>/dev/null || true
     
-    # Backup important files
-    if [ -d "build" ]; then
-        cp -r build "$BACKUP_DIR/"
-    fi
+    echo -e "${GREEN}Backup created in $BACKUP_DIR${NC}"
     
-    if [ -f "version.json" ]; then
-        cp version.json "$BACKUP_DIR/"
-    fi
+    # Initialize git and add remote
+    git init
+    git remote add origin "$GITHUB_REPO"
     
-    echo -e "${GREEN}Backup created in: $BACKUP_DIR${NC}"
-}
-
-# Function to check git status
-check_git() {
-    if [ -d ".git" ]; then
-        echo -e "${BLUE}Git repository detected${NC}"
-        return 0
-    else
-        echo -e "${YELLOW}Not a git repository${NC}"
-        return 1
-    fi
-}
-
-# Function to update via git
-update_git() {
-    echo -e "${BLUE}Updating via Git...${NC}"
-    
-    # Fetch latest changes
+    echo -e "${BLUE}Fetching latest version...${NC}"
     git fetch origin main
+    git checkout -b main origin/main
     
-    # Check for conflicts
-    if git diff --quiet HEAD origin/main; then
-        echo -e "${GREEN}Already up to date!${NC}"
-        return 0
-    fi
-    
-    # Show what will be updated
-    echo -e "${CYAN}Changes to be applied:${NC}"
-    git log --oneline HEAD..origin/main
-    
-    read -p "Continue with update? (y/n): " -n 1 -r
-    echo
-    
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        # Create backup before update
-        backup_current
-        
-        # Pull changes
-        git pull origin main
-        
-        if [ $? -eq 0 ]; then
-            echo -e "${GREEN}Update successful!${NC}"
-            return 0
-        else
-            echo -e "${RED}Update failed!${NC}"
-            return 1
-        fi
-    else
-        echo -e "${YELLOW}Update cancelled${NC}"
-        return 1
-    fi
-}
+    echo -e "${GREEN}Repository initialized and updated!${NC}"
+    exit 0
+fi
 
-# Function to download latest version
-download_latest() {
-    echo -e "${BLUE}Downloading latest version...${NC}"
-    
-    if ! command -v curl &> /dev/null && ! command -v wget &> /dev/null; then
-        echo -e "${RED}Neither curl nor wget found!${NC}"
-        echo "Please install curl or wget to download updates"
-        return 1
-    fi
-    
-    # Create backup
-    backup_current
-    
-    # Download latest release
-    TEMP_DIR="omnios_temp_$(date +%Y%m%d_%H%M%S)"
-    mkdir -p "$TEMP_DIR"
-    
-    echo -e "${YELLOW}Downloading from GitHub...${NC}"
-    
-    if command -v git &> /dev/null; then
-        git clone "$REPO_URL" "$TEMP_DIR"
-    elif command -v curl &> /dev/null; then
-        curl -L "${REPO_URL}/archive/main.zip" -o "$TEMP_DIR/omnios.zip"
-        if command -v unzip &> /dev/null; then
-            unzip -q "$TEMP_DIR/omnios.zip" -d "$TEMP_DIR"
-            mv "$TEMP_DIR/OmniOS-2.0-main"/* .
-        else
-            echo -e "${RED}unzip not found! Please install unzip${NC}"
-            return 1
-        fi
-    elif command -v wget &> /dev/null; then
-        wget "${REPO_URL}/archive/main.zip" -O "$TEMP_DIR/omnios.zip"
-        if command -v unzip &> /dev/null; then
-            unzip -q "$TEMP_DIR/omnios.zip" -d "$TEMP_DIR"
-            mv "$TEMP_DIR/OmniOS-2.0-main"/* .
-        else
-            echo -e "${RED}unzip not found! Please install unzip${NC}"
-            return 1
-        fi
-    fi
-    
-    # Cleanup
-    rm -rf "$TEMP_DIR"
-    
-    echo -e "${GREEN}Download completed!${NC}"
-    return 0
-}
+# Check current status
+echo -e "${BLUE}Checking current status...${NC}"
 
-# Main update logic
-main() {
-    echo -e "${BLUE}Checking for updates...${NC}"
-    
-    if check_git; then
-        update_git
-    else
-        echo -e "${YELLOW}Manual download required${NC}"
-        read -p "Download latest version? (y/n): " -n 1 -r
-        echo
-        
-        if [[ $REPLY =~ ^[Yy]$ ]]; then
-            download_latest
-        else
-            echo -e "${CYAN}You can manually download from: ${REPO_URL}${NC}"
-            exit 0
-        fi
-    fi
-    
-    # Rebuild after update
-    if [ $? -eq 0 ]; then
-        echo -e "${BLUE}Rebuilding OmniOS 2.0...${NC}"
-        chmod +x build.sh
-        ./build.sh
-        
-        if [ $? -eq 0 ]; then
-            echo -e "${GREEN}Update and rebuild completed successfully!${NC}"
-            echo -e "${CYAN}Run './run-safe.sh' to start OmniOS 2.0${NC}"
-        else
-            echo -e "${RED}Rebuild failed! Check the build output above.${NC}"
-            echo -e "${YELLOW}Your backup is available in: $BACKUP_DIR${NC}"
-        fi
-    fi
-}
+# Fetch latest changes
+git fetch origin main
 
-# Run main function
-main "$@"
+# Get current and remote commit hashes
+LOCAL=$(git rev-parse HEAD)
+REMOTE=$(git rev-parse origin/main)
+
+if [ "$LOCAL" = "$REMOTE" ]; then
+    echo -e "${GREEN}OmniOS 2.0 is already up to date!${NC}"
+    exit 0
+fi
+
+echo -e "${YELLOW}Updates available!${NC}"
+
+# Show what will be updated
+echo -e "${BLUE}Changes to be applied:${NC}"
+git log --oneline HEAD..origin/main
+
+echo ""
+read -p "Do you want to proceed with the update? (y/n): " -n 1 -r
+echo
+
+if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo -e "${YELLOW}Update cancelled.${NC}"
+    exit 0
+fi
+
+# Create backup before updating
+echo -e "${BLUE}Creating backup...${NC}"
+mkdir -p "$BACKUP_DIR"
+cp -r src/ "$BACKUP_DIR/" 2>/dev/null || true
+cp -r docs/ "$BACKUP_DIR/" 2>/dev/null || true
+cp *.sh "$BACKUP_DIR/" 2>/dev/null || true
+cp Makefile "$BACKUP_DIR/" 2>/dev/null || true
+
+echo -e "${GREEN}Backup created in $BACKUP_DIR${NC}"
+
+# Perform update
+echo -e "${BLUE}Updating OmniOS 2.0...${NC}"
+
+# Stash any local changes
+git stash push -m "Auto-stash before update $(date)"
+
+# Pull latest changes
+git pull origin main
+
+echo -e "${GREEN}Update completed successfully!${NC}"
+
+# Check if there were stashed changes
+if git stash list | grep -q "Auto-stash before update"; then
+    echo -e "${YELLOW}Local changes were stashed. To restore them, run:${NC}"
+    echo "git stash pop"
+fi
+
+echo ""
+echo -e "${BLUE}Update Summary:${NC}"
+echo "- Backup created in: $BACKUP_DIR"
+echo "- Updated to latest version from GitHub"
+echo "- Ready to build and run"
+
+echo ""
+echo -e "${GREEN}To build and run the updated system:${NC}"
+echo "./build.sh"
