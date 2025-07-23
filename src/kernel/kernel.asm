@@ -1,771 +1,62 @@
-; OmniOS 2.0 Enhanced Kernel with Setup, Authentication, and Settings
-; Complete operating system with professional features
+; OmniOS 2.0 Enhanced Kernel with Complete Feature Set
+; Includes setup system, authentication, settings, and all commands
 [BITS 16]
 [ORG 0x1000]
 
-start:
+; Kernel entry point
+kernel_start:
     ; Initialize segments
-    cli
     mov ax, cs
     mov ds, ax
     mov es, ax
+    
+    ; Set up stack
+    mov ax, 0x9000
     mov ss, ax
-    mov sp, 0x8000
-    sti
+    mov sp, 0xFFFF
+    
+    ; Clear screen with professional blue background
+    call clear_screen_blue
     
     ; Check first boot flag from bootloader
     mov al, [0x500]
-    mov [first_boot], al
-    
-    ; Clear screen and set up display
-    call clear_screen
-    call setup_display
-    
-    ; Check if first boot
-    cmp byte [first_boot], 1
-    je run_setup
+    cmp al, 1
+    je run_initial_setup
     
     ; Not first boot - show login screen
     call show_login_screen
     jmp main_loop
 
-run_setup:
-    ; First boot - run setup wizard
-    call show_setup_wizard
-    ; Mark setup as complete
+run_initial_setup:
+    call show_setup_screen
     call mark_setup_complete
-    ; Continue to login
+    ; After setup, continue to login
     call show_login_screen
-
-main_loop:
-    ; Main system loop after authentication
-    call show_desktop
-    call show_prompt
-    call get_command
-    call process_command
     jmp main_loop
 
-; Setup wizard for first boot
-show_setup_wizard:
-    pusha
-    
-    ; Setup header
-    call clear_screen
-    mov si, setup_header
-    call print_color_line
-    call newline
-    
-    ; Step 1: User account creation
-    call setup_user_account
-    
-    ; Step 2: Network configuration
-    call setup_network
-    
-    ; Step 3: Display settings
-    call setup_display_settings
-    
-    ; Setup complete
-    mov si, setup_complete_msg
-    call print_success
-    call wait_key
-    
-    popa
-    ret
-
-setup_user_account:
-    pusha
-    
-    mov si, user_setup_msg
-    call print_info
-    call newline
-    
-    ; Get username
-    mov si, username_prompt
-    call print
-    mov di, username_buffer
-    call get_input
-    
-    ; Get password
-    mov si, password_prompt
-    call print
-    mov di, password_buffer
-    call get_password_input
-    
-    ; Confirm password
-    mov si, confirm_password_prompt
-    call print
-    mov di, temp_buffer
-    call get_password_input
-    
-    ; Validate passwords match
-    mov si, password_buffer
-    mov di, temp_buffer
-    call compare_strings
-    cmp ax, 1
-    je .password_ok
-    
-    mov si, password_mismatch_msg
-    call print_error
-    jmp setup_user_account
-    
-.password_ok:
-    mov si, user_created_msg
-    call print_success
-    call newline
-    
-    popa
-    ret
-
-setup_network:
-    pusha
-    
-    mov si, network_setup_msg
-    call print_info
-    call newline
-    
-    ; Scan for networks
-    mov si, scanning_networks_msg
-    call print
-    call simulate_network_scan
-    
-    ; Show available networks
-    call show_network_list
-    
-    ; Get network selection
-    mov si, select_network_prompt
-    call print
-    mov di, temp_buffer
-    call get_input
-    
-    ; Get network password if needed
-    mov si, network_password_prompt
-    call print
-    mov di, network_password_buffer
-    call get_password_input
-    
-    ; Simulate connection
-    mov si, connecting_msg
-    call print
-    call simulate_connection
-    
-    mov si, network_connected_msg
-    call print_success
-    call newline
-    
-    popa
-    ret
-
-setup_display_settings:
-    pusha
-    
-    mov si, display_setup_msg
-    call print_info
-    call newline
-    
-    ; Color scheme selection
-    mov si, color_scheme_prompt
-    call print
-    call show_color_options
-    
-    mov di, temp_buffer
-    call get_input
-    
-    ; Apply color scheme
-    call apply_color_scheme
-    
-    mov si, display_configured_msg
-    call print_success
-    call newline
-    
-    popa
-    ret
-
-; Login screen for subsequent boots
-show_login_screen:
-    pusha
-    
-    call clear_screen
-    
-    ; Login header
-    mov si, login_header
-    call print_color_line
-    call newline
-    call newline
-    
-.login_loop:
-    ; Username prompt
-    mov si, login_username_prompt
-    call print
-    mov di, input_username
-    call get_input
-    
-    ; Password prompt
-    mov si, login_password_prompt
-    call print
-    mov di, input_password
-    call get_password_input
-    
-    ; Authenticate user
-    call authenticate_user
-    cmp ax, 1
-    je .login_success
-    
-    ; Login failed
-    mov si, login_failed_msg
-    call print_error
-    call newline
-    jmp .login_loop
-    
-.login_success:
-    mov si, login_success_msg
-    call print_success
-    call wait_key
-    
-    ; Set current user
-    mov si, input_username
-    mov di, current_user
-    call copy_string
-    
-    popa
-    ret
-
-; Desktop environment
-show_desktop:
-    call clear_screen
-    
-    ; Desktop header
-    mov si, desktop_header
-    call print_color_line
-    call newline
-    
-    ; Welcome message
-    mov si, welcome_msg
-    call print
-    mov si, current_user
-    call print
-    mov si, exclamation
-    call print
-    call newline
-    
-    ; System ready message
-    mov si, system_ready_msg
-    call print_info
-    call newline
-    
-    ret
-
-; Command processing
-get_command:
-    mov di, command_buffer
-    call get_input
-    ret
-
-process_command:
-    pusha
-    
-    ; Check for empty command
-    cmp byte [command_buffer], 0
-    je .done
-    
-    ; Convert to lowercase for comparison
-    mov si, command_buffer
-    call to_lowercase
-    
-    ; Check commands
-    mov si, command_buffer
-    
-    ; Help command
-    mov di, cmd_help
-    call compare_strings
-    cmp ax, 1
-    je .cmd_help
-    
-    ; Settings command
-    mov di, cmd_settings
-    call compare_strings
-    cmp ax, 1
-    je .cmd_settings
-    
-    ; Admin command
-    mov di, cmd_admin
-    call compare_strings
-    cmp ax, 1
-    je .cmd_admin
-    
-    ; WiFi command
-    mov di, cmd_wifi
-    call compare_strings
-    cmp ax, 1
-    je .cmd_wifi
-    
-    ; Users command
-    mov di, cmd_users
-    call compare_strings
-    cmp ax, 1
-    je .cmd_users
-    
-    ; Apps command
-    mov di, cmd_apps
-    call compare_strings
-    cmp ax, 1
-    je .cmd_apps
-    
-    ; Factory command
-    mov di, cmd_factory
-    call compare_strings
-    cmp ax, 1
-    je .cmd_factory
-    
-    ; Clear command
-    mov di, cmd_clear
-    call compare_strings
-    cmp ax, 1
-    je .cmd_clear
-    
-    ; Version command
-    mov di, cmd_version
-    call compare_strings
-    cmp ax, 1
-    je .cmd_version
-    
-    ; Logout command
-    mov di, cmd_logout
-    call compare_strings
-    cmp ax, 1
-    je .cmd_logout
-    
-    ; Exit command
-    mov di, cmd_exit
-    call compare_strings
-    cmp ax, 1
-    je .cmd_exit
-    
-    ; Unknown command
-    mov si, unknown_command_msg
-    call print_error
-    jmp .done
-    
-.cmd_help:
-    call show_help
-    jmp .done
-    
-.cmd_settings:
-    call show_settings_menu
-    jmp .done
-    
-.cmd_admin:
-    call toggle_admin_mode
-    jmp .done
-    
-.cmd_wifi:
-    call wifi_configuration
-    jmp .done
-    
-.cmd_users:
-    call user_management
-    jmp .done
-    
-.cmd_apps:
-    call app_management
-    jmp .done
-    
-.cmd_factory:
-    call factory_reset
-    jmp .done
-    
-.cmd_clear:
-    call clear_screen
+; Main system loop
+main_loop:
+    ; Show desktop
     call show_desktop
-    jmp .done
     
-.cmd_version:
-    call show_version
-    jmp .done
+    ; Main command loop
+command_loop:
+    ; Show prompt
+    call show_prompt
     
-.cmd_logout:
-    call logout_user
-    jmp .done
+    ; Get command input
+    call get_command_input
     
-.cmd_exit:
-    call shutdown_system
-    jmp .done
+    ; Process command
+    call process_command
     
-.done:
-    popa
-    ret
+    jmp command_loop
 
-; Enhanced help system
-show_help:
-    pusha
-    
-    call newline
-    mov si, help_header
-    call print_color_line
-    call newline
-    
-    ; Basic commands
-    mov si, help_basic_header
-    call print_info
-    call newline
-    
-    mov si, help_basic_1
-    call print
-    call newline
-    mov si, help_basic_2
-    call print
-    call newline
-    mov si, help_basic_3
-    call print
-    call newline
-    mov si, help_basic_4
-    call print
-    call newline
-    mov si, help_basic_5
-    call print
-    call newline
-    
-    ; System commands
-    call newline
-    mov si, help_system_header
-    call print_info
-    call newline
-    
-    mov si, help_system_1
-    call print
-    call newline
-    mov si, help_system_2
-    call print
-    call newline
-    mov si, help_system_3
-    call print
-    call newline
-    mov si, help_system_4
-    call print
-    call newline
-    
-    ; Network commands
-    call newline
-    mov si, help_network_header
-    call print_info
-    call newline
-    
-    mov si, help_network_1
-    call print
-    call newline
-    
-    ; Admin commands
-    call newline
-    mov si, help_admin_header
-    call print_info
-    call newline
-    
-    mov si, help_admin_1
-    call print
-    call newline
-    mov si, help_admin_2
-    call print
-    call newline
-    
-    call newline
-    mov si, help_footer
-    call print_color_line
-    call newline
-    
-    popa
-    ret
-
-; Settings menu
-show_settings_menu:
-    pusha
-    
-.menu_loop:
-    call clear_screen
-    
-    ; Settings header
-    mov si, settings_header
-    call print_color_line
-    call newline
-    call newline
-    
-    ; Menu options
-    mov si, settings_option_1
-    call print
-    call newline
-    mov si, settings_option_2
-    call print
-    call newline
-    mov si, settings_option_3
-    call print
-    call newline
-    mov si, settings_option_4
-    call print
-    call newline
-    mov si, settings_option_5
-    call print
-    call newline
-    mov si, settings_option_0
-    call print
-    call newline
-    call newline
-    
-    ; Get selection
-    mov si, settings_prompt
-    call print
-    mov di, temp_buffer
-    call get_input
-    
-    ; Process selection
-    mov al, [temp_buffer]
-    
-    cmp al, '1'
-    je .wifi_config
-    cmp al, '2'
-    je .user_mgmt
-    cmp al, '3'
-    je .app_mgmt
-    cmp al, '4'
-    je .admin_toggle
-    cmp al, '5'
-    je .factory_reset
-    cmp al, '0'
-    je .exit_settings
-    
-    ; Invalid selection
-    mov si, invalid_selection_msg
-    call print_error
-    call wait_key
-    jmp .menu_loop
-    
-.wifi_config:
-    call wifi_configuration
-    call wait_key
-    jmp .menu_loop
-    
-.user_mgmt:
-    call user_management
-    call wait_key
-    jmp .menu_loop
-    
-.app_mgmt:
-    call app_management
-    call wait_key
-    jmp .menu_loop
-    
-.admin_toggle:
-    call toggle_admin_mode
-    call wait_key
-    jmp .menu_loop
-    
-.factory_reset:
-    call factory_reset
-    call wait_key
-    jmp .menu_loop
-    
-.exit_settings:
-    popa
-    ret
-
-; WiFi configuration
-wifi_configuration:
-    pusha
-    
-    call newline
-    mov si, wifi_config_header
-    call print_color_line
-    call newline
-    
-    ; Show current status
-    mov si, wifi_status_msg
-    call print
-    mov si, wifi_current_network
-    call print
-    call newline
-    
-    ; Scan for networks
-    mov si, wifi_scanning_msg
-    call print
-    call simulate_network_scan
-    
-    ; Show networks
-    call show_network_list
-    
-    ; Connection options
-    mov si, wifi_connect_prompt
-    call print
-    mov di, temp_buffer
-    call get_input
-    
-    ; Process connection
-    call process_wifi_connection
-    
-    popa
-    ret
-
-; User management
-user_management:
-    pusha
-    
-    call newline
-    mov si, user_mgmt_header
-    call print_color_line
-    call newline
-    
-    ; Show current user
-    mov si, current_user_msg
-    call print
-    mov si, current_user
-    call print
-    call newline
-    
-    ; User management options
-    mov si, user_mgmt_options
-    call print
-    call newline
-    
-    ; Get selection
-    mov di, temp_buffer
-    call get_input
-    
-    ; Process user management
-    call process_user_management
-    
-    popa
-    ret
-
-; Application management
-app_management:
-    pusha
-    
-    call newline
-    mov si, app_mgmt_header
-    call print_color_line
-    call newline
-    
-    ; Show installed apps
-    mov si, installed_apps_msg
-    call print
-    call newline
-    call show_installed_apps
-    
-    ; App management options
-    mov si, app_mgmt_options
-    call print
-    call newline
-    
-    ; Get selection
-    mov di, temp_buffer
-    call get_input
-    
-    ; Process app management
-    call process_app_management
-    
-    popa
-    ret
-
-; Admin mode toggle
-toggle_admin_mode:
-    pusha
-    
-    ; Check current admin status
-    cmp byte [admin_mode], 1
-    je .disable_admin
-    
-    ; Enable admin mode
-    call newline
-    mov si, admin_enable_msg
-    call print
-    
-    ; Verify admin password
-    mov si, admin_password_prompt
-    call print
-    mov di, temp_buffer
-    call get_password_input
-    
-    ; Check password (simplified - in real system would be hashed)
-    mov si, temp_buffer
-    mov di, admin_password
-    call compare_strings
-    cmp ax, 1
-    je .admin_enabled
-    
-    mov si, admin_auth_failed_msg
-    call print_error
-    jmp .done
-    
-.admin_enabled:
-    mov byte [admin_mode], 1
-    mov si, admin_enabled_msg
-    call print_success
-    jmp .done
-    
-.disable_admin:
-    mov byte [admin_mode], 0
-    mov si, admin_disabled_msg
-    call print_info
-    
-.done:
-    popa
-    ret
-
-; Factory reset
-factory_reset:
-    pusha
-    
-    ; Check admin mode
-    cmp byte [admin_mode], 1
-    jne .no_admin
-    
-    call newline
-    mov si, factory_reset_warning
-    call print_error
-    call newline
-    
-    mov si, factory_reset_confirm
-    call print
-    mov di, temp_buffer
-    call get_input
-    
-    ; Check confirmation
-    mov al, [temp_buffer]
-    cmp al, 'Y'
-    je .perform_reset
-    cmp al, 'y'
-    je .perform_reset
-    
-    mov si, factory_reset_cancelled
-    call print_info
-    jmp .done
-    
-.perform_reset:
-    mov si, factory_reset_progress
-    call print
-    call simulate_factory_reset
-    
-    mov si, factory_reset_complete
-    call print_success
-    call newline
-    
-    ; Reset system state
-    call reset_system_state
-    
-    ; Restart setup
-    mov byte [first_boot], 1
-    jmp run_setup
-    
-.no_admin:
-    mov si, admin_required_msg
-    call print_error
-    
-.done:
-    popa
-    ret
-
-; Utility functions
-clear_screen:
-    pusha
+; Clear screen with professional blue background
+clear_screen_blue:
     mov ah, 0x06
     mov al, 0
-    mov bh, 0x17        ; Blue background, white text
+    mov bh, 0x17        ; White text on blue background
     mov ch, 0
     mov cl, 0
     mov dh, 24
@@ -778,557 +69,1345 @@ clear_screen:
     mov dh, 0
     mov dl, 0
     int 0x10
-    popa
     ret
 
-setup_display:
-    pusha
-    ; Set up color scheme and display mode
-    popa
+; Initial Setup Screen
+show_setup_screen:
+    call clear_screen_blue
+    
+    ; Draw setup header
+    mov dh, 2
+    mov dl, 15
+    call set_cursor
+    mov si, setup_header
+    call print_string_white
+    
+    ; Draw setup box
+    mov dh, 4
+    mov dl, 10
+    mov ch, 16
+    mov cl, 60
+    call draw_box
+    
+    ; Step 1: User Account Creation
+    mov dh, 6
+    mov dl, 12
+    call set_cursor
+    mov si, setup_step1
+    call print_string_yellow
+    
+    ; Get username
+    mov dh, 8
+    mov dl, 12
+    call set_cursor
+    mov si, username_prompt
+    call print_string_white
+    
+    mov di, stored_username
+    mov cx, 32
+    call get_input_string
+    
+    ; Get password
+    mov dh, 10
+    mov dl, 12
+    call set_cursor
+    mov si, password_prompt
+    call print_string_white
+    
+    mov di, stored_password
+    mov cx, 32
+    call get_password_input
+    
+    ; Step 2: Network Configuration
+    mov dh, 12
+    mov dl, 12
+    call set_cursor
+    mov si, setup_step2
+    call print_string_yellow
+    
+    call show_network_setup
+    
+    ; Setup complete message
+    mov dh, 18
+    mov dl, 12
+    call set_cursor
+    mov si, setup_complete_msg
+    call print_string_green
+    
+    ; Wait for key press
+    mov ah, 0x00
+    int 0x16
+    
     ret
 
+; Network setup display
+show_network_setup:
+    mov dh, 14
+    mov dl, 12
+    call set_cursor
+    mov si, network_scan_msg
+    call print_string_white
+    
+    ; Simulate network scanning
+    call simulate_network_scan
+    
+    ; Show available networks
+    mov dh, 15
+    mov dl, 14
+    call set_cursor
+    mov si, network_list
+    call print_string_white
+    
+    ret
+
+; Simulate network scanning
+simulate_network_scan:
+    ; Simple delay simulation
+    mov cx, 0x0005
+.delay_loop:
+    push cx
+    mov cx, 0xFFFF
+.inner_delay:
+    nop
+    loop .inner_delay
+    pop cx
+    loop .delay_loop
+    ret
+
+; Login Screen
+show_login_screen:
+    call clear_screen_blue
+    
+    ; Draw login header
+    mov dh, 8
+    mov dl, 30
+    call set_cursor
+    mov si, login_header
+    call print_string_white
+    
+    ; Draw login box
+    mov dh, 10
+    mov dl, 20
+    mov ch, 8
+    mov cl, 40
+    call draw_box
+    
+.login_loop:
+    ; Username prompt
+    mov dh, 12
+    mov dl, 22
+    call set_cursor
+    mov si, username_prompt
+    call print_string_white
+    
+    mov di, input_username
+    mov cx, 32
+    call get_input_string
+    
+    ; Password prompt
+    mov dh, 14
+    mov dl, 22
+    call set_cursor
+    mov si, password_prompt
+    call print_string_white
+    
+    mov di, input_password
+    mov cx, 32
+    call get_password_input
+    
+    ; Verify credentials
+    call verify_login
+    cmp al, 1
+    je .login_success
+    
+    ; Login failed
+    mov dh, 16
+    mov dl, 22
+    call set_cursor
+    mov si, login_failed_msg
+    call print_string_red
+    
+    ; Wait and try again
+    mov ah, 0x00
+    int 0x16
+    jmp .login_loop
+
+.login_success:
+    mov dh, 16
+    mov dl, 22
+    call set_cursor
+    mov si, login_success_msg
+    call print_string_green
+    
+    ; Brief pause
+    mov cx, 0x0003
+.success_delay:
+    push cx
+    mov cx, 0xFFFF
+.inner_delay:
+    nop
+    loop .inner_delay
+    pop cx
+    loop .success_delay
+    
+    ret
+
+; Verify login credentials
+verify_login:
+    ; Compare username
+    mov si, input_username
+    mov di, stored_username
+    call compare_strings
+    cmp al, 1
+    jne .login_fail
+    
+    ; Compare password
+    mov si, input_password
+    mov di, stored_password
+    call compare_strings
+    cmp al, 1
+    jne .login_fail
+    
+    mov al, 1  ; Success
+    ret
+
+.login_fail:
+    mov al, 0  ; Failure
+    ret
+
+; Show desktop environment
+show_desktop:
+    call clear_screen_blue
+    
+    ; Desktop header
+    mov dh, 0
+    mov dl, 0
+    call set_cursor
+    mov si, desktop_header
+    call print_string_white
+    
+    ; Welcome message
+    mov dh, 2
+    mov dl, 2
+    call set_cursor
+    mov si, welcome_msg
+    call print_string_white
+    
+    mov si, stored_username
+    call print_string_yellow
+    
+    mov si, welcome_msg2
+    call print_string_white
+    
+    ; System ready message
+    mov dh, 4
+    mov dl, 2
+    call set_cursor
+    mov si, system_ready_msg
+    call print_string_green
+    
+    ret
+
+; Show command prompt
 show_prompt:
-    ; Show appropriate prompt based on admin mode
+    mov dh, 23
+    mov dl, 0
+    call set_cursor
+    
+    ; Show username
+    mov si, stored_username
+    call print_string_yellow
+    
+    ; Show admin indicator if in admin mode
     cmp byte [admin_mode], 1
-    je .admin_prompt
+    jne .normal_prompt
     
-    ; Normal prompt
-    mov si, current_user
-    call print
-    mov si, normal_prompt
-    call print
-    jmp .done
+    mov si, admin_indicator
+    call print_string_red
     
-.admin_prompt:
-    mov si, current_user
-    call print
-    mov si, admin_prompt_text
-    call print_error  ; Red text for admin mode
+.normal_prompt:
+    mov si, prompt_symbol
+    call print_string_white
+    ret
+
+; Get command input
+get_command_input:
+    mov di, command_buffer
+    mov cx, 255
+    call get_input_string
+    ret
+
+; Process commands
+process_command:
+    ; Clear any previous output area
+    call clear_output_area
     
-.done:
+    ; Check for empty command
+    mov si, command_buffer
+    cmp byte [si], 0
+    je .end_process
+    
+    ; Convert to lowercase for comparison
+    mov si, command_buffer
+    call to_lowercase
+    
+    ; Check each command
+    mov si, command_buffer
+    
+    ; Help command
+    mov di, cmd_help
+    call compare_strings
+    cmp al, 1
+    je .cmd_help
+    
+    ; Settings command
+    mov di, cmd_settings
+    call compare_strings
+    cmp al, 1
+    je .cmd_settings
+    
+    ; Admin command
+    mov di, cmd_admin
+    call compare_strings
+    cmp al, 1
+    je .cmd_admin
+    
+    ; WiFi command
+    mov di, cmd_wifi
+    call compare_strings
+    cmp al, 1
+    je .cmd_wifi
+    
+    ; Users command
+    mov di, cmd_users
+    call compare_strings
+    cmp al, 1
+    je .cmd_users
+    
+    ; Apps command
+    mov di, cmd_apps
+    call compare_strings
+    cmp al, 1
+    je .cmd_apps
+    
+    ; Factory command (admin only)
+    mov di, cmd_factory
+    call compare_strings
+    cmp al, 1
+    je .cmd_factory
+    
+    ; Clear command
+    mov di, cmd_clear
+    call compare_strings
+    cmp al, 1
+    je .cmd_clear
+    
+    ; Version command
+    mov di, cmd_version
+    call compare_strings
+    cmp al, 1
+    je .cmd_version
+    
+    ; Logout command
+    mov di, cmd_logout
+    call compare_strings
+    cmp al, 1
+    je .cmd_logout
+    
+    ; Exit command
+    mov di, cmd_exit
+    call compare_strings
+    cmp al, 1
+    je .cmd_exit
+    
+    ; Unknown command
+    mov dh, 6
+    mov dl, 2
+    call set_cursor
+    mov si, unknown_cmd_msg
+    call print_string_red
+    jmp .end_process
+
+.cmd_help:
+    call show_help_menu
+    jmp .end_process
+
+.cmd_settings:
+    call show_settings_menu
+    jmp .end_process
+
+.cmd_admin:
+    call toggle_admin_mode
+    jmp .end_process
+
+.cmd_wifi:
+    call show_wifi_menu
+    jmp .end_process
+
+.cmd_users:
+    call show_users_menu
+    jmp .end_process
+
+.cmd_apps:
+    call show_apps_menu
+    jmp .end_process
+
+.cmd_factory:
+    call factory_reset
+    jmp .end_process
+
+.cmd_clear:
+    call show_desktop
+    jmp .end_process
+
+.cmd_version:
+    call show_version_info
+    jmp .end_process
+
+.cmd_logout:
+    call logout_user
+    jmp .end_process
+
+.cmd_exit:
+    call shutdown_system
+    jmp .end_process
+
+.end_process:
     ret
 
-print:
-    pusha
-    mov ah, 0x0E
+; Show comprehensive help menu
+show_help_menu:
+    mov dh, 6
+    mov dl, 2
+    call set_cursor
+    mov si, help_header
+    call print_string_cyan
+    
+    mov dh, 7
+    mov dl, 2
+    call set_cursor
+    mov si, help_basic
+    call print_string_white
+    
+    mov dh, 8
+    mov dl, 2
+    call set_cursor
+    mov si, help_system
+    call print_string_white
+    
+    mov dh, 9
+    mov dl, 2
+    call set_cursor
+    mov si, help_network
+    call print_string_white
+    
+    mov dh, 10
+    mov dl, 2
+    call set_cursor
+    mov si, help_admin
+    call print_string_white
+    
+    mov dh, 11
+    mov dl, 2
+    call set_cursor
+    mov si, help_note
+    call print_string_yellow
+    
+    ret
+
+; Show settings menu
+show_settings_menu:
+    call clear_screen_blue
+    
+    ; Settings header
+    mov dh, 2
+    mov dl, 25
+    call set_cursor
+    mov si, settings_header
+    call print_string_white
+    
+    ; Draw settings box
+    mov dh, 4
+    mov dl, 15
+    mov ch, 15
+    mov cl, 50
+    call draw_box
+    
+    ; Menu options
+    mov dh, 6
+    mov dl, 17
+    call set_cursor
+    mov si, settings_option1
+    call print_string_white
+    
+    mov dh, 8
+    mov dl, 17
+    call set_cursor
+    mov si, settings_option2
+    call print_string_white
+    
+    mov dh, 10
+    mov dl, 17
+    call set_cursor
+    mov si, settings_option3
+    call print_string_white
+    
+    mov dh, 12
+    mov dl, 17
+    call set_cursor
+    mov si, settings_option4
+    call print_string_white
+    
+    mov dh, 14
+    mov dl, 17
+    call set_cursor
+    mov si, settings_option5
+    call print_string_white
+    
+    mov dh, 16
+    mov dl, 17
+    call set_cursor
+    mov si, settings_option0
+    call print_string_yellow
+    
+    ; Get user choice
+    mov dh, 18
+    mov dl, 17
+    call set_cursor
+    mov si, choice_prompt
+    call print_string_white
+    
+    ; Wait for key input
+    mov ah, 0x00
+    int 0x16
+    
+    ; Process choice
+    cmp al, '1'
+    je .wifi_config
+    cmp al, '2'
+    je .user_mgmt
+    cmp al, '3'
+    je .app_mgmt
+    cmp al, '4'
+    je .admin_toggle
+    cmp al, '5'
+    je .factory_reset
+    cmp al, '0'
+    je .back_to_desktop
+    
+    ; Invalid choice
+    mov dh, 19
+    mov dl, 17
+    call set_cursor
+    mov si, invalid_choice_msg
+    call print_string_red
+    
+    ; Wait and return to settings
+    mov ah, 0x00
+    int 0x16
+    call show_settings_menu
+    ret
+
+.wifi_config:
+    call show_wifi_menu
+    ret
+
+.user_mgmt:
+    call show_users_menu
+    ret
+
+.app_mgmt:
+    call show_apps_menu
+    ret
+
+.admin_toggle:
+    call toggle_admin_mode
+    ret
+
+.factory_reset:
+    call factory_reset
+    ret
+
+.back_to_desktop:
+    call show_desktop
+    ret
+
+; WiFi configuration menu
+show_wifi_menu:
+    call clear_screen_blue
+    
+    mov dh, 2
+    mov dl, 25
+    call set_cursor
+    mov si, wifi_header
+    call print_string_white
+    
+    ; Show scanning message
+    mov dh, 6
+    mov dl, 10
+    call set_cursor
+    mov si, wifi_scanning_msg
+    call print_string_yellow
+    
+    ; Simulate scanning
+    call simulate_network_scan
+    
+    ; Show networks
+    mov dh, 8
+    mov dl, 10
+    call set_cursor
+    mov si, wifi_networks
+    call print_string_white
+    
+    ; Wait for user input
+    mov ah, 0x00
+    int 0x16
+    
+    call show_desktop
+    ret
+
+; User management menu
+show_users_menu:
+    call clear_screen_blue
+    
+    mov dh, 2
+    mov dl, 25
+    call set_cursor
+    mov si, users_header
+    call print_string_white
+    
+    mov dh, 6
+    mov dl, 10
+    call set_cursor
+    mov si, users_current
+    call print_string_white
+    
+    mov si, stored_username
+    call print_string_yellow
+    
+    mov dh, 8
+    mov dl, 10
+    call set_cursor
+    mov si, users_options
+    call print_string_white
+    
+    ; Wait for user input
+    mov ah, 0x00
+    int 0x16
+    
+    call show_desktop
+    ret
+
+; Application management menu
+show_apps_menu:
+    call clear_screen_blue
+    
+    mov dh, 2
+    mov dl, 25
+    call set_cursor
+    mov si, apps_header
+    call print_string_white
+    
+    mov dh, 6
+    mov dl, 10
+    call set_cursor
+    mov si, apps_installed
+    call print_string_white
+    
+    mov dh, 8
+    mov dl, 10
+    call set_cursor
+    mov si, apps_list
+    call print_string_white
+    
+    ; Wait for user input
+    mov ah, 0x00
+    int 0x16
+    
+    call show_desktop
+    ret
+
+; Toggle admin mode
+toggle_admin_mode:
+    cmp byte [admin_mode], 1
+    je .disable_admin
+    
+    ; Enable admin mode - require password
+    mov dh, 6
+    mov dl, 2
+    call set_cursor
+    mov si, admin_password_prompt
+    call print_string_yellow
+    
+    mov di, temp_password
+    mov cx, 32
+    call get_password_input
+    
+    ; Verify admin password (same as user password for simplicity)
+    mov si, temp_password
+    mov di, stored_password
+    call compare_strings
+    cmp al, 1
+    jne .admin_fail
+    
+    ; Enable admin mode
+    mov byte [admin_mode], 1
+    mov dh, 7
+    mov dl, 2
+    call set_cursor
+    mov si, admin_enabled_msg
+    call print_string_green
+    ret
+
+.disable_admin:
+    ; Disable admin mode
+    mov byte [admin_mode], 0
+    mov dh, 6
+    mov dl, 2
+    call set_cursor
+    mov si, admin_disabled_msg
+    call print_string_green
+    ret
+
+.admin_fail:
+    mov dh, 7
+    mov dl, 2
+    call set_cursor
+    mov si, admin_fail_msg
+    call print_string_red
+    ret
+
+; Factory reset function
+factory_reset:
+    ; Check if admin mode is enabled
+    cmp byte [admin_mode], 1
+    jne .not_admin
+    
+    mov dh, 6
+    mov dl, 2
+    call set_cursor
+    mov si, factory_warning
+    call print_string_red
+    
+    mov dh, 8
+    mov dl, 2
+    call set_cursor
+    mov si, factory_confirm
+    call print_string_yellow
+    
+    ; Get confirmation
+    mov ah, 0x00
+    int 0x16
+    
+    cmp al, 'Y'
+    je .do_reset
+    cmp al, 'y'
+    je .do_reset
+    
+    mov dh, 9
+    mov dl, 2
+    call set_cursor
+    mov si, factory_cancelled
+    call print_string_green
+    ret
+
+.do_reset:
+    mov dh, 9
+    mov dl, 2
+    call set_cursor
+    mov si, factory_resetting
+    call print_string_red
+    
+    ; Clear setup flag to force setup on next boot
+    call clear_setup_flag
+    
+    ; Reset system
+    mov dh, 10
+    mov dl, 2
+    call set_cursor
+    mov si, factory_complete
+    call print_string_green
+    
+    ; Wait and reboot
+    mov cx, 0x0005
+.reset_delay:
+    push cx
+    mov cx, 0xFFFF
+.inner_delay:
+    nop
+    loop .inner_delay
+    pop cx
+    loop .reset_delay
+    
+    ; Reboot system
+    db 0x0EA
+    dw 0x0000
+    dw 0xFFFF
+
+.not_admin:
+    mov dh, 6
+    mov dl, 2
+    call set_cursor
+    mov si, admin_required_msg
+    call print_string_red
+    ret
+
+; Show version information
+show_version_info:
+    mov dh, 6
+    mov dl, 2
+    call set_cursor
+    mov si, version_header
+    call print_string_cyan
+    
+    mov dh, 7
+    mov dl, 2
+    call set_cursor
+    mov si, version_info
+    call print_string_white
+    
+    mov dh, 8
+    mov dl, 2
+    call set_cursor
+    mov si, version_features
+    call print_string_green
+    
+    ret
+
+; Logout user
+logout_user:
+    mov dh, 6
+    mov dl, 2
+    call set_cursor
+    mov si, logout_msg
+    call print_string_yellow
+    
+    ; Brief delay
+    mov cx, 0x0002
+.logout_delay:
+    push cx
+    mov cx, 0xFFFF
+.inner_delay:
+    nop
+    loop .inner_delay
+    pop cx
+    loop .logout_delay
+    
+    ; Return to login screen
+    call show_login_screen
+    jmp main_loop
+
+; Shutdown system
+shutdown_system:
+    mov dh, 6
+    mov dl, 2
+    call set_cursor
+    mov si, shutdown_msg
+    call print_string_yellow
+    
+    ; Brief delay
+    mov cx, 0x0003
+.shutdown_delay:
+    push cx
+    mov cx, 0xFFFF
+.inner_delay:
+    nop
+    loop .inner_delay
+    pop cx
+    loop .shutdown_delay
+    
+    ; Shutdown
+    mov ax, 0x5307
+    mov bx, 0x0001
+    mov cx, 0x0003
+    int 0x15
+    
+    ; If shutdown fails, halt
+    cli
+    hlt
+
+; Mark setup as complete
+mark_setup_complete:
+    ; Write setup completion flag to disk sector 20
+    mov ah, 0x03        ; Write sectors
+    mov al, 1           ; Number of sectors
+    mov ch, 0           ; Cylinder 0
+    mov cl, 20          ; Sector 20
+    mov dh, 0           ; Head 0
+    mov dl, [0x7C00 + 510 - 1]  ; Boot drive
+    
+    ; Prepare setup flag data
+    mov bx, 0x600
+    mov es, bx
+    mov bx, 0x0000
+    mov word [es:0x0000], 0x4F53  ; "SO" signature
+    
+    int 0x13
+    ret
+
+; Clear setup flag for factory reset
+clear_setup_flag:
+    ; Clear sector 20
+    mov ah, 0x03        ; Write sectors
+    mov al, 1           ; Number of sectors
+    mov ch, 0           ; Cylinder 0
+    mov cl, 20          ; Sector 20
+    mov dh, 0           ; Head 0
+    mov dl, [0x7C00 + 510 - 1]  ; Boot drive
+    
+    ; Clear data
+    mov bx, 0x600
+    mov es, bx
+    mov bx, 0x0000
+    mov word [es:0x0000], 0x0000  ; Clear signature
+    
+    int 0x13
+    ret
+
+; Utility functions
+set_cursor:
+    mov ah, 0x02
     mov bh, 0
-    mov bl, 0x0F        ; White text
-.loop:
+    int 0x10
+    ret
+
+print_string_white:
+    mov bl, 0x0F
+    jmp print_string_colored
+
+print_string_red:
+    mov bl, 0x0C
+    jmp print_string_colored
+
+print_string_green:
+    mov bl, 0x0A
+    jmp print_string_colored
+
+print_string_yellow:
+    mov bl, 0x0E
+    jmp print_string_colored
+
+print_string_cyan:
+    mov bl, 0x0B
+    jmp print_string_colored
+
+print_string_colored:
+    push ax
+    push bx
+    push cx
+    
+.print_loop:
     lodsb
     cmp al, 0
     je .done
-    int 0x10
-    jmp .loop
-.done:
-    popa
-    ret
-
-print_color_line:
-    pusha
-    mov ah, 0x0E
+    
+    mov ah, 0x09
     mov bh, 0
-    mov bl, 0x1F        ; Blue background, white text
-.loop:
-    lodsb
-    cmp al, 0
-    je .done
+    mov cx, 1
     int 0x10
-    jmp .loop
-.done:
-    popa
-    ret
-
-print_success:
-    pusha
-    mov ah, 0x0E
+    
+    ; Move cursor forward
+    mov ah, 0x03
     mov bh, 0
-    mov bl, 0x0A        ; Green text
-.loop:
-    lodsb
-    cmp al, 0
-    je .done
     int 0x10
-    jmp .loop
+    inc dl
+    mov ah, 0x02
+    int 0x10
+    
+    jmp .print_loop
+
 .done:
-    popa
+    pop cx
+    pop bx
+    pop ax
     ret
 
-print_error:
-    pusha
-    mov ah, 0x0E
+; Draw a box
+draw_box:
+    ; DH=top, DL=left, CH=height, CL=width
+    push ax
+    push bx
+    push cx
+    push dx
+    
+    ; Save parameters
+    mov [box_top], dh
+    mov [box_left], dl
+    mov [box_height], ch
+    mov [box_width], cl
+    
+    ; Draw top border
+    call set_cursor
+    mov al, 0xDA  ; Top-left corner
+    mov bl, 0x0F
+    mov ah, 0x09
     mov bh, 0
-    mov bl, 0x0C        ; Red text
-.loop:
-    lodsb
-    cmp al, 0
-    je .done
+    mov cx, 1
     int 0x10
-    jmp .loop
-.done:
-    popa
+    
+    ; Draw top line
+    mov cl, [box_width]
+    sub cl, 2
+.top_line:
+    mov ah, 0x03
+    int 0x10
+    inc dl
+    mov ah, 0x02
+    int 0x10
+    
+    mov al, 0xC4  ; Horizontal line
+    mov ah, 0x09
+    mov cx, 1
+    int 0x10
+    
+    dec byte [box_width]
+    cmp byte [box_width], 2
+    jg .top_line
+    
+    ; Restore width
+    mov cl, [box_width]
+    add cl, 2
+    mov [box_width], cl
+    
+    ; Top-right corner
+    mov ah, 0x03
+    int 0x10
+    inc dl
+    mov ah, 0x02
+    int 0x10
+    
+    mov al, 0xBF  ; Top-right corner
+    mov ah, 0x09
+    mov cx, 1
+    int 0x10
+    
+    ; Draw sides
+    mov ch, [box_height]
+    sub ch, 2
+    mov dh, [box_top]
+    inc dh
+    
+.side_loop:
+    ; Left side
+    mov dl, [box_left]
+    call set_cursor
+    mov al, 0xB3  ; Vertical line
+    mov ah, 0x09
+    mov cx, 1
+    int 0x10
+    
+    ; Right side
+    mov dl, [box_left]
+    add dl, [box_width]
+    dec dl
+    call set_cursor
+    mov al, 0xB3  ; Vertical line
+    mov ah, 0x09
+    mov cx, 1
+    int 0x10
+    
+    inc dh
+    dec ch
+    jnz .side_loop
+    
+    ; Bottom border
+    mov dh, [box_top]
+    add dh, [box_height]
+    dec dh
+    mov dl, [box_left]
+    call set_cursor
+    
+    mov al, 0xC0  ; Bottom-left corner
+    mov ah, 0x09
+    mov cx, 1
+    int 0x10
+    
+    ; Bottom line
+    mov cl, [box_width]
+    sub cl, 2
+.bottom_line:
+    mov ah, 0x03
+    int 0x10
+    inc dl
+    mov ah, 0x02
+    int 0x10
+    
+    mov al, 0xC4  ; Horizontal line
+    mov ah, 0x09
+    mov cx, 1
+    int 0x10
+    
+    dec cl
+    jnz .bottom_line
+    
+    ; Bottom-right corner
+    mov ah, 0x03
+    int 0x10
+    inc dl
+    mov ah, 0x02
+    int 0x10
+    
+    mov al, 0xD9  ; Bottom-right corner
+    mov ah, 0x09
+    mov cx, 1
+    int 0x10
+    
+    pop dx
+    pop cx
+    pop bx
+    pop ax
     ret
 
-print_info:
-    pusha
-    mov ah, 0x0E
-    mov bh, 0
-    mov bl, 0x0E        ; Yellow text
-.loop:
-    lodsb
-    cmp al, 0
-    je .done
-    int 0x10
-    jmp .loop
-.done:
-    popa
-    ret
-
-newline:
-    pusha
-    mov ah, 0x0E
-    mov al, 0x0D
-    int 0x10
-    mov al, 0x0A
-    int 0x10
-    popa
-    ret
-
-get_input:
-    pusha
-    mov bx, di          ; Save buffer pointer
-    mov cx, 0           ; Character count
+; Get input string
+get_input_string:
+    ; DI = buffer, CX = max length
+    push ax
+    push bx
+    push cx
+    push dx
+    
+    mov bx, 0  ; Character count
     
 .input_loop:
     mov ah, 0x00
     int 0x16
     
-    cmp al, 0x0D        ; Enter key
+    cmp al, 13  ; Enter key
     je .input_done
     
-    cmp al, 0x08        ; Backspace
+    cmp al, 8   ; Backspace
     je .handle_backspace
     
-    ; Regular character
-    cmp cx, 63          ; Max input length
-    jae .input_loop
+    cmp al, 32  ; Space or printable character
+    jl .input_loop
+    
+    cmp bx, cx  ; Check max length
+    jge .input_loop
     
     ; Store character
-    mov [di], al
-    inc di
-    inc cx
+    mov [di + bx], al
+    inc bx
     
     ; Echo character
     mov ah, 0x0E
     int 0x10
     
     jmp .input_loop
-    
+
 .handle_backspace:
-    cmp cx, 0
+    cmp bx, 0
     je .input_loop
     
-    dec di
-    dec cx
-    mov byte [di], 0
+    dec bx
+    mov byte [di + bx], 0
     
-    ; Erase character on screen
+    ; Move cursor back and erase
     mov ah, 0x0E
-    mov al, 0x08
+    mov al, 8
     int 0x10
     mov al, ' '
     int 0x10
-    mov al, 0x08
+    mov al, 8
     int 0x10
     
     jmp .input_loop
-    
+
 .input_done:
-    mov byte [di], 0    ; Null terminate
-    call newline
-    popa
+    mov byte [di + bx], 0  ; Null terminate
+    
+    ; Move to next line
+    mov ah, 0x0E
+    mov al, 13
+    int 0x10
+    mov al, 10
+    int 0x10
+    
+    pop dx
+    pop cx
+    pop bx
+    pop ax
     ret
 
+; Get password input (masked)
 get_password_input:
-    pusha
-    mov bx, di          ; Save buffer pointer
-    mov cx, 0           ; Character count
+    ; DI = buffer, CX = max length
+    push ax
+    push bx
+    push cx
+    push dx
     
-.input_loop:
+    mov bx, 0  ; Character count
+    
+.password_loop:
     mov ah, 0x00
     int 0x16
     
-    cmp al, 0x0D        ; Enter key
-    je .input_done
+    cmp al, 13  ; Enter key
+    je .password_done
     
-    cmp al, 0x08        ; Backspace
-    je .handle_backspace
+    cmp al, 8   ; Backspace
+    je .handle_password_backspace
     
-    ; Regular character
-    cmp cx, 63          ; Max input length
-    jae .input_loop
+    cmp al, 32  ; Space or printable character
+    jl .password_loop
+    
+    cmp bx, cx  ; Check max length
+    jge .password_loop
     
     ; Store character
-    mov [di], al
-    inc di
-    inc cx
+    mov [di + bx], al
+    inc bx
     
     ; Echo asterisk
     mov ah, 0x0E
     mov al, '*'
     int 0x10
     
-    jmp .input_loop
+    jmp .password_loop
+
+.handle_password_backspace:
+    cmp bx, 0
+    je .password_loop
     
-.handle_backspace:
-    cmp cx, 0
-    je .input_loop
+    dec bx
+    mov byte [di + bx], 0
     
-    dec di
-    dec cx
-    mov byte [di], 0
-    
-    ; Erase asterisk on screen
+    ; Move cursor back and erase
     mov ah, 0x0E
-    mov al, 0x08
+    mov al, 8
     int 0x10
     mov al, ' '
     int 0x10
-    mov al, 0x08
+    mov al, 8
     int 0x10
     
-    jmp .input_loop
+    jmp .password_loop
+
+.password_done:
+    mov byte [di + bx], 0  ; Null terminate
     
-.input_done:
-    mov byte [di], 0    ; Null terminate
-    call newline
-    popa
+    ; Move to next line
+    mov ah, 0x0E
+    mov al, 13
+    int 0x10
+    mov al, 10
+    int 0x10
+    
+    pop dx
+    pop cx
+    pop bx
+    pop ax
     ret
 
-wait_key:
-    pusha
-    mov si, press_key_msg
-    call print
-    mov ah, 0x00
-    int 0x16
-    call newline
-    popa
-    ret
-
-to_lowercase:
-    pusha
-.loop:
-    lodsb
-    cmp al, 0
-    je .done
-    cmp al, 'A'
-    jb .next
-    cmp al, 'Z'
-    ja .next
-    add al, 32
-    mov [si-1], al
-.next:
-    jmp .loop
-.done:
-    popa
-    ret
-
+; Compare strings
 compare_strings:
-    pusha
-    mov cx, 0
-.loop:
-    lodsb
+    ; SI = string1, DI = string2
+    ; Returns AL = 1 if equal, 0 if not
+    push bx
+    push cx
+    
+.compare_loop:
+    mov al, [si]
     mov bl, [di]
-    inc di
+    
     cmp al, bl
     jne .not_equal
+    
     cmp al, 0
     je .equal
-    jmp .loop
-.equal:
-    mov ax, 1
-    jmp .done
-.not_equal:
-    mov ax, 0
-.done:
-    mov [temp_compare_result], ax
-    popa
-    mov ax, [temp_compare_result]
-    ret
-
-copy_string:
-    pusha
-.loop:
-    lodsb
-    mov [di], al
+    
+    inc si
     inc di
-    cmp al, 0
-    jne .loop
-    popa
-    ret
+    jmp .compare_loop
 
-; Simulation functions
-simulate_network_scan:
-    pusha
-    mov cx, 3
-.scan_loop:
-    mov al, '.'
-    mov ah, 0x0E
-    int 0x10
-    
-    ; Simple delay
-    push cx
-    mov cx, 0xFFFF
-.delay:
-    loop .delay
-    pop cx
-    
-    loop .scan_loop
-    
-    call newline
-    popa
-    ret
+.equal:
+    mov al, 1
+    jmp .compare_done
 
-show_network_list:
-    pusha
-    mov si, network_list_header
-    call print_info
-    call newline
-    
-    mov si, network_1
-    call print
-    call newline
-    mov si, network_2
-    call print
-    call newline
-    mov si, network_3
-    call print
-    call newline
-    mov si, network_4
-    call print
-    call newline
-    
-    popa
-    ret
-
-simulate_connection:
-    pusha
-    mov cx, 5
-.connect_loop:
-    mov al, '.'
-    mov ah, 0x0E
-    int 0x10
-    
-    ; Simple delay
-    push cx
-    mov cx, 0xFFFF
-.delay:
-    loop .delay
-    pop cx
-    
-    loop .connect_loop
-    
-    call newline
-    popa
-    ret
-
-authenticate_user:
-    pusha
-    ; Simple authentication - compare with stored credentials
-    mov si, input_username
-    mov di, username_buffer
-    call compare_strings
-    cmp ax, 1
-    jne .auth_failed
-    
-    mov si, input_password
-    mov di, password_buffer
-    call compare_strings
-    cmp ax, 1
-    jne .auth_failed
-    
-    mov ax, 1
-    jmp .auth_done
-    
-.auth_failed:
-    mov ax, 0
-    
-.auth_done:
-    mov [auth_result], ax
-    popa
-    mov ax, [auth_result]
-    ret
-
-mark_setup_complete:
-    pusha
-    ; In a real system, this would write to disk
-    ; For now, just set flag
-    mov byte [setup_completed], 1
-    popa
-    ret
-
-show_color_options:
-    pusha
-    mov si, color_option_1
-    call print
-    call newline
-    mov si, color_option_2
-    call print
-    call newline
-    mov si, color_option_3
-    call print
-    call newline
-    popa
-    ret
-
-apply_color_scheme:
-    pusha
-    ; Apply selected color scheme
-    ; Implementation would depend on selection
-    popa
-    ret
-
-process_wifi_connection:
-    pusha
-    mov si, wifi_connecting_msg
-    call print
-    call simulate_connection
-    mov si, wifi_connected_msg
-    call print_success
-    popa
-    ret
-
-process_user_management:
-    pusha
-    mov si, user_mgmt_processing
-    call print_info
-    popa
-    ret
-
-show_installed_apps:
-    pusha
-    mov si, app_list_header
-    call print
-    call newline
-    mov si, app_1
-    call print
-    call newline
-    mov si, app_2
-    call print
-    call newline
-    mov si, app_3
-    call print
-    call newline
-    popa
-    ret
-
-process_app_management:
-    pusha
-    mov si, app_mgmt_processing
-    call print_info
-    popa
-    ret
-
-simulate_factory_reset:
-    pusha
-    mov cx, 10
-.reset_loop:
-    mov al, '.'
-    mov ah, 0x0E
-    int 0x10
-    
-    ; Delay
-    push cx
-    mov cx, 0xFFFF
-.delay:
-    loop .delay
-    pop cx
-    
-    loop .reset_loop
-    
-    call newline
-    popa
-    ret
-
-reset_system_state:
-    pusha
-    ; Reset all system variables
-    mov byte [admin_mode], 0
-    mov byte [setup_completed], 0
-    ; Clear user data
-    mov di, username_buffer
-    mov cx, 64
+.not_equal:
     mov al, 0
-    rep stosb
-    popa
+
+.compare_done:
+    pop cx
+    pop bx
     ret
 
-show_version:
-    pusha
-    call newline
-    mov si, version_header
-    call print_color_line
-    call newline
-    mov si, version_info
-    call print
-    call newline
-    mov si, build_info
-    call print
-    call newline
-    mov si, features_info
-    call print
-    call newline
-    popa
+; Convert string to lowercase
+to_lowercase:
+    ; SI = string
+    push ax
+    push si
+    
+.lower_loop:
+    mov al, [si]
+    cmp al, 0
+    je .lower_done
+    
+    cmp al, 'A'
+    jl .next_char
+    cmp al, 'Z'
+    jg .next_char
+    
+    add al, 32  ; Convert to lowercase
+    mov [si], al
+
+.next_char:
+    inc si
+    jmp .lower_loop
+
+.lower_done:
+    pop si
+    pop ax
     ret
 
-logout_user:
-    pusha
-    mov si, logout_msg
-    call print_info
-    call wait_key
-    ; Return to login screen
-    popa
-    jmp show_login_screen
-
-shutdown_system:
-    pusha
-    mov si, shutdown_msg
-    call print_info
-    call wait_key
+; Clear output area
+clear_output_area:
+    ; Clear lines 6-22 for command output
+    mov dh, 6
+    mov dl, 0
+    mov ch, 17
+    mov cl, 80
     
-    ; Shutdown sequence
-    mov ax, 0x5307
-    mov bx, 0x0001
-    mov cx, 0x0003
-    int 0x15
+.clear_loop:
+    call set_cursor
     
-    ; If APM shutdown fails, halt
-    cli
-    hlt
-    popa
+    ; Clear line
+    mov cx, 80
+.clear_line:
+    mov ah, 0x0E
+    mov al, ' '
+    int 0x10
+    loop .clear_line
+    
+    inc dh
+    dec ch
+    jnz .clear_loop
+    
     ret
 
 ; Data section
-first_boot          db 1
-admin_mode          db 0
-setup_completed     db 0
-auth_result         dw 0
-temp_compare_result dw 0
+; Setup messages
+setup_header        db '                    INITIAL SETUP                    ', 0
+setup_step1         db 'Step 1: Create User Account', 0
+setup_step2         db 'Step 2: Network Configuration', 0
+setup_complete_msg  db 'Setup Complete! Press any key to continue...', 0
+network_scan_msg    db 'Scanning for available networks...', 0
+network_list        db '1. OmniNet-5G (Secured)  2. HomeWiFi (Secured)  3. Skip', 0
 
-; User data
-current_user        times 64 db 0
-username_buffer     times 64 db 0
-password_buffer     times 64 db 0
-input_username      times 64 db 0
-input_password      times 64 db 0
-network_password_buffer times 64 db 0
-command_buffer      times 128 db 0
-temp_buffer         times 128 db 0
+; Login messages
+login_header        db '                        LOGIN                        ', 0
+login_failed_msg    db 'Login failed! Press any key to try again...', 0
+login_success_msg   db 'Login successful! Welcome to OmniOS 2.0', 0
 
-; Admin credentials (in real system would be hashed)
-admin_password      db 'admin123', 0
+; Desktop messages
+desktop_header      db '                    OmniOS 2.0 Desktop Environment                    ', 0
+welcome_msg         db 'Welcome back, ', 0
+welcome_msg2        db '!', 0
+system_ready_msg    db 'System ready. Type "help" for available commands.', 0
 
-; Network data
-wifi_current_network db 'Not connected', 0
+; Prompt
+prompt_symbol       db '> ', 0
+admin_indicator     db ' [ADMIN]', 0
 
 ; Commands
 cmd_help            db 'help', 0
@@ -1343,139 +1422,82 @@ cmd_version         db 'version', 0
 cmd_logout          db 'logout', 0
 cmd_exit            db 'exit', 0
 
-; Messages
-setup_header        db '                     INITIAL SETUP                           ', 0
-user_setup_msg      db 'Step 1: Create User Account', 0
-network_setup_msg   db 'Step 2: Network Configuration', 0
-display_setup_msg   db 'Step 3: Display Settings', 0
-setup_complete_msg  db 'Setup Complete! Welcome to OmniOS 2.0', 0
-
-username_prompt     db 'Enter username: ', 0
-password_prompt     db 'Enter password: ', 0
-confirm_password_prompt db 'Confirm password: ', 0
-password_mismatch_msg db 'Passwords do not match. Please try again.', 0
-user_created_msg    db 'User account created successfully!', 0
-
-scanning_networks_msg db 'Scanning for networks', 0
-network_password_prompt db 'Enter network password: ', 0
-connecting_msg      db 'Connecting', 0
-network_connected_msg db 'Network connected successfully!', 0
-
-color_scheme_prompt db 'Select color scheme (1-3): ', 0
-color_option_1      db '1. Default (Blue)', 0
-color_option_2      db '2. Dark Theme', 0
-color_option_3      db '3. High Contrast', 0
-display_configured_msg db 'Display settings configured!', 0
-
-login_header        db '                        LOGIN                                ', 0
-login_username_prompt db 'Username: ', 0
-login_password_prompt db 'Password: ', 0
-login_failed_msg    db 'Login failed. Please try again.', 0
-login_success_msg   db 'Login successful!', 0
-
-desktop_header      db '                    OmniOS 2.0 Desktop Environment                    ', 0
-welcome_msg         db 'Welcome back, ', 0
-exclamation         db '!', 0
-system_ready_msg    db 'System ready. Type "help" for available commands.', 0
-
-normal_prompt       db '> ', 0
-admin_prompt_text   db ' [ADMIN]> ', 0
-
-unknown_command_msg db 'Command not found. Type "help" for available commands.', 0
-
 ; Help messages
-help_header         db '                       HELP SYSTEM                         ', 0
-help_basic_header   db 'Basic Commands:', 0
-help_basic_1        db '  help        - Show this help menu', 0
-help_basic_2        db '  clear       - Clear screen and refresh desktop', 0
-help_basic_3        db '  version     - Show system version information', 0
-help_basic_4        db '  logout      - Logout current user', 0
-help_basic_5        db '  exit        - Shutdown system', 0
+help_header         db 'OmniOS 2.0 Enhanced Command Reference:', 0
+help_basic          db 'Basic: help clear version logout exit', 0
+help_system         db 'System: settings admin users apps', 0
+help_network        db 'Network: wifi', 0
+help_admin          db 'Admin: factory (requires admin mode)', 0
+help_note           db 'Use "settings" for comprehensive configuration menu', 0
 
-help_system_header  db 'System Commands:', 0
-help_system_1       db '  settings    - Open comprehensive settings menu', 0
-help_system_2       db '  admin       - Toggle administrator mode', 0
-help_system_3       db '  users       - User management interface', 0
-help_system_4       db '  apps        - Application management system', 0
+; Settings messages
+settings_header     db '                       SETTINGS                       ', 0
+settings_option1    db '1. WiFi Configuration', 0
+settings_option2    db '2. User Management', 0
+settings_option3    db '3. Application Management', 0
+settings_option4    db '4. Admin Mode Toggle', 0
+settings_option5    db '5. Factory Reset', 0
+settings_option0    db '0. Back to Desktop', 0
+choice_prompt       db 'Select option (0-5): ', 0
+invalid_choice_msg  db 'Invalid choice! Press any key...', 0
 
-help_network_header db 'Network Commands:', 0
-help_network_1      db '  wifi        - WiFi configuration and management', 0
+; WiFi messages
+wifi_header         db '                   WIFI CONFIGURATION                   ', 0
+wifi_scanning_msg   db 'Scanning for networks...', 0
+wifi_networks       db '1. OmniNet-5G (90%)  2. HomeWiFi (75%)  3. PublicNet (45%)', 0
 
-help_admin_header   db 'Administrative Commands (Admin Mode Required):', 0
-help_admin_1        db '  factory     - Factory reset system', 0
-help_admin_2        db '  sysconfig   - Advanced system configuration', 0
+; User management messages
+users_header        db '                   USER MANAGEMENT                   ', 0
+users_current       db 'Current user: ', 0
+users_options       db 'Options: Change password, Create user, Delete user', 0
 
-help_footer         db '                    End of Help                           ', 0
+; Application management messages
+apps_header         db '                APPLICATION MANAGEMENT                ', 0
+apps_installed      db 'Installed applications:', 0
+apps_list           db 'System Tools, Network Manager, Text Editor', 0
 
-; Settings menu
-settings_header     db '                       SETTINGS                            ', 0
-settings_option_1   db '1. WiFi Configuration', 0
-settings_option_2   db '2. User Management', 0
-settings_option_3   db '3. Application Management', 0
-settings_option_4   db '4. Admin Mode Toggle', 0
-settings_option_5   db '5. Factory Reset', 0
-settings_option_0   db '0. Back to main menu', 0
-settings_prompt     db 'Select option (0-5): ', 0
-invalid_selection_msg db 'Invalid selection. Please try again.', 0
-
-; WiFi configuration
-wifi_config_header  db '                   WIFI CONFIGURATION                     ', 0
-wifi_status_msg     db 'Current network: ', 0
-wifi_scanning_msg   db 'Scanning for networks', 0
-wifi_connect_prompt db 'Enter network number to connect (or 0 to cancel): ', 0
-wifi_connecting_msg db 'Connecting to network', 0
-wifi_connected_msg  db 'Successfully connected to network!', 0
-
-network_list_header db 'Available networks:', 0
-network_1           db '1. OmniNet-5G (Secured)', 0
-network_2           db '2. HomeWiFi (Secured)', 0
-network_3           db '3. PublicNet (Open)', 0
-network_4           db '4. Skip network setup', 0
-
-; User management
-user_mgmt_header    db '                   USER MANAGEMENT                        ', 0
-current_user_msg    db 'Current user: ', 0
-user_mgmt_options   db 'User management options available here.', 0
-user_mgmt_processing db 'Processing user management request...', 0
-
-; Application management
-app_mgmt_header     db '                APPLICATION MANAGEMENT                    ', 0
-installed_apps_msg  db 'Installed applications:', 0
-app_list_header     db 'Applications:', 0
-app_1               db '  - Notepad (Text Editor)', 0
-app_2               db '  - Settings (System Configuration)', 0
-app_3               db '  - Terminal (Command Interface)', 0
-app_mgmt_options    db 'Application management options available here.', 0
-app_mgmt_processing db 'Processing application management request...', 0
-
-; Admin mode
-admin_enable_msg    db 'Enabling administrator mode...', 0
+; Admin messages
 admin_password_prompt db 'Enter admin password: ', 0
-admin_auth_failed_msg db 'Authentication failed. Access denied.', 0
 admin_enabled_msg   db 'Administrator mode ENABLED', 0
-admin_disabled_msg  db 'Administrator mode disabled', 0
-admin_required_msg  db 'Administrator privileges required for this command.', 0
+admin_disabled_msg  db 'Administrator mode DISABLED', 0
+admin_fail_msg      db 'Incorrect password!', 0
+admin_required_msg  db 'Administrator privileges required!', 0
 
-; Factory reset
-factory_reset_warning db 'WARNING: This will erase ALL data and reset to factory defaults!', 0
-factory_reset_confirm db 'Type Y to confirm factory reset: ', 0
-factory_reset_cancelled db 'Factory reset cancelled.', 0
-factory_reset_progress db 'Performing factory reset', 0
-factory_reset_complete db 'Factory reset complete. System will restart.', 0
+; Factory reset messages
+factory_warning     db 'WARNING: This will erase ALL data and reset to factory defaults!', 0
+factory_confirm     db 'Type Y to confirm factory reset: ', 0
+factory_cancelled   db 'Factory reset cancelled.', 0
+factory_resetting   db 'Performing factory reset...', 0
+factory_complete    db 'Factory reset complete. System will restart.', 0
 
-; Version information
-version_header      db '                    VERSION INFORMATION                    ', 0
-version_info        db 'OmniOS 2.0 Enhanced Professional Edition', 0
-build_info          db 'Build: 2025-01-23 | Architecture: x86 16-bit', 0
-features_info       db 'Features: Setup, Authentication, Settings, Admin Mode', 0
+; Version messages
+version_header      db 'OmniOS 2.0 Enhanced Professional Edition', 0
+version_info        db 'Version: 2.0.0 Build 2025.01.23', 0
+version_features    db 'Features: Setup, Authentication, Settings, Admin Mode, Factory Reset', 0
 
 ; System messages
-press_key_msg       db 'Press any key to continue...', 0
 logout_msg          db 'Logging out...', 0
 shutdown_msg        db 'Shutting down system...', 0
+unknown_cmd_msg     db 'Unknown command. Type "help" for available commands.', 0
 
-; Network selection prompt
-select_network_prompt db 'Select network (1-4): ', 0
+; Input prompts
+username_prompt     db 'Username: ', 0
+password_prompt     db 'Password: ', 0
 
-; Padding to ensure proper size
-times 8192-($-$$) db 0
+; Storage variables
+stored_username     times 33 db 0
+stored_password     times 33 db 0
+input_username      times 33 db 0
+input_password      times 33 db 0
+temp_password       times 33 db 0
+command_buffer      times 256 db 0
+admin_mode          db 0
+
+; Box drawing variables
+box_top             db 0
+box_left            db 0
+box_height          db 0
+box_width           db 0
+
+; Pad kernel to fill sectors
+times 9216-($-$$) db 0  ; 18 sectors * 512 bytes = 9216 bytes

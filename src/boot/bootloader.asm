@@ -70,11 +70,11 @@ print_string:
 check_first_boot:
     pusha
     
-    ; Try to read setup flag from sector 2
+    ; Try to read setup flag from sector 20 (after kernel)
     mov ah, 0x02        ; Read sectors
     mov al, 1           ; Number of sectors
     mov ch, 0           ; Cylinder 0
-    mov cl, 3           ; Sector 3 (setup data)
+    mov cl, 20          ; Sector 20 (setup data)
     mov dh, 0           ; Head 0
     mov dl, [boot_drive]
     mov bx, 0x600       ; Load to temporary location
@@ -86,7 +86,7 @@ check_first_boot:
     ; Check setup signature
     mov ax, 0x600
     mov es, ax
-    cmp word [es:0x0000], 0x5354  ; "ST" signature
+    cmp word [es:0x0000], 0x4F53  ; "SO" signature (Setup Ok)
     jne .first_boot
     
     ; Setup exists, not first boot
