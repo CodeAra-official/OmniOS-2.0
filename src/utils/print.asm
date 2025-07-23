@@ -167,3 +167,43 @@ convt_filename:
     rep stosb
 .done:
     ret
+
+; New functions added
+print_char:
+    mov ah, 0x0E
+    int 0x10
+    ret
+
+print_success:
+    mov bl, 0x0A        ; Green text
+    call print_colored
+    ret
+
+print_error:
+    mov bl, 0x0C        ; Red text
+    call print_colored
+    ret
+
+print_colored:
+    push ax
+    push bx
+    mov ah, 0x0E
+.loop:
+    lodsb
+    cmp al, 0
+    je .done
+    int 0x10
+    jmp .loop
+.done:
+    pop bx
+    pop ax
+    ret
+
+scan_filesystem:
+    ; Simple filesystem scan
+    mov byte [file_count], 4
+    ret
+
+; Temporary buffer for filename conversion
+temp_buffer db 11 dup(0)
+file_count db 0

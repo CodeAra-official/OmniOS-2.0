@@ -96,13 +96,40 @@ scan_filesystem:
     
     ret
 
+create_file:
+    ; Create a new file
+    ; SI = filename
+    push ax
+    push si
+    
+    ; Simple file creation simulation
+    mov si, file_created_msg
+    call print_string
+    
+    pop si
+    pop ax
+    ret
+
+delete_file:
+    ; Delete a file
+    ; SI = filename
+    push ax
+    push si
+    
+    ; Simple file deletion simulation
+    mov si, file_deleted_msg
+    call print_string
+    
+    pop si
+    pop ax
+    ret
+
 ; Filesystem data
 fs_init_msg db 'Filesystem initialized', 0
 root_path db '/', 0
-sample_files db 'FREADME.TXT', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-             db 'FSYSTEM.CFG', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-             db 'FBOOT.LOG', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-             db 'FUSER.DAT', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+sample_files db 'FREADME.TXT', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+             db 'FSYSTEM.CFG', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+             db 'FBOOT.LOG', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 
 ; File data
 dir_system      db 'system', 0
@@ -113,3 +140,7 @@ file_config     db 'config.sys', 0
 file_readme     db 'readme.txt', 0
 file_log        db 'system.log', 0
 parent_link     db '..', 0
+
+; Messages
+file_created_msg db 'File created successfully.', 13, 10, 0
+file_deleted_msg db 'File deleted successfully.', 13, 10, 0

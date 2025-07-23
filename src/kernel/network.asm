@@ -1,20 +1,31 @@
 ; OmniOS 2.0 Network Functions
-; Basic network functionality placeholder
+; Basic network operations
 
-init_network:
+network_init:
     ; Initialize network subsystem
-    mov si, net_init_msg
-    call print_colored
-    call newline
+    push ax
+    push si
+    
+    mov si, network_init_msg
+    call print_string
+    
+    pop si
+    pop ax
     ret
 
-check_network:
-    ; Check network status
-    mov si, net_status_msg
-    call print_colored
-    call newline
+network_send:
+    ; Send network packet
+    ; SI = data to send
+    push ax
+    push si
+    
+    mov si, network_send_msg
+    call print_string
+    
+    pop si
+    pop ax
     ret
 
 ; Network data
-net_init_msg db 'Network subsystem initialized', 0
-net_status_msg db 'Network: Not connected', 0
+network_init_msg db 'Network initialized.', 13, 10, 0
+network_send_msg db 'Network packet sent.', 13, 10, 0

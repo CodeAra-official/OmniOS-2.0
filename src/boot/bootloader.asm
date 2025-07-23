@@ -73,7 +73,7 @@ load_kernel:
     
     ; Load kernel (simple approach)
     mov ah, 0x02        ; Read sectors
-    mov al, 10          ; Number of sectors
+    mov al, 18          ; Number of sectors to read
     mov ch, 0           ; Cylinder 0
     mov cl, 2           ; Start sector 2
     mov dh, 0           ; Head 0

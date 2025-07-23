@@ -1,4 +1,8 @@
-; OmniOS 2.0 Command Processor
+; OmniOS 2.0 Command Processor - Simplified Version
+; This file contains only essential command processing functions
+
+; No duplicate function definitions - all functions are in kernel.asm
+
 command:
     
 .readkeys:
