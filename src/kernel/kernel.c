@@ -1,336 +1,297 @@
 /*
- * OmniOS 2.0 Kernel - C Components
- * Enhanced kernel with C/Assembly hybrid architecture
+ * OmniOS 2.0 Kernel - Main Kernel Implementation
+ * Modular kernel with resource management and driver interface
  */
 
-#include "version.h"
-#include "colors.h"
+#include "omnios.h"
+#include "kernel/memory.h"
+#include "kernel/process.h"
+#include "kernel/drivers.h"
+#include "kernel/syscalls.h"
+#include "ui/ui_framework.h"
+#include "security/security.h"
 
-// Kernel data structures
-typedef struct {
-    char name[32];
-    unsigned int size;
-    unsigned int address;
-    unsigned char type;
-} file_entry_t;
+// Kernel signature (must match bootloader check)
+const uint32_t kernel_signature __attribute__((section(".signature"))) = 0x4E524B4F; // "OKRN"
 
-typedef struct {
-    unsigned char r, g, b;
-} color_t;
+// Global system state
+static system_state_t g_system_state;
+static module_t g_loaded_modules[MAX_MODULES];
+static int g_module_count = 0;
 
-// Color palette for enhanced UI
-static color_t color_palette[16] = {
-    {0x00, 0x00, 0x00}, // Black
-    {0x00, 0x00, 0xAA}, // Blue
-    {0x00, 0xAA, 0x00}, // Green
-    {0x00, 0xAA, 0xAA}, // Cyan
-    {0xAA, 0x00, 0x00}, // Red
-    {0xAA, 0x00, 0xAA}, // Magenta
-    {0xAA, 0x55, 0x00}, // Brown
-    {0xAA, 0xAA, 0xAA}, // Light Gray
-    {0x55, 0x55, 0x55}, // Dark Gray
-    {0x55, 0x55, 0xFF}, // Light Blue
-    {0x55, 0xFF, 0x55}, // Light Green
-    {0x55, 0xFF, 0xFF}, // Light Cyan
-    {0xFF, 0x55, 0x55}, // Light Red
-    {0xFF, 0x55, 0xFF}, // Light Magenta
-    {0xFF, 0xFF, 0x55}, // Yellow
-    {0xFF, 0xFF, 0xFF}  // White
-};
-
-// File system structure
-static file_entry_t file_table[256];
-static int file_count = 0;
-
-// Function prototypes
-void kernel_main(void);
-void init_filesystem(void);
-void init_drivers(void);
-void init_applications(void);
-int process_ls_command(void);
-int install_opi_package(const char* filename);
-void set_text_color(unsigned char color);
-void print_colored(const char* text, unsigned char color);
-
-/*
- * Main kernel entry point (called from assembly)
- */
+// Kernel initialization sequence
 void kernel_main(void) {
     // Initialize kernel subsystems
-    init_filesystem();
-    init_drivers();
-    init_applications();
+    kernel_early_init();
     
-    // Display welcome message with colors
-    set_text_color(UI_TITLE);
-    print_colored("OmniOS " OMNIOS_VERSION_STRING " - " OMNIOS_CODENAME, UI_TITLE);
+    // Display kernel banner
+    kernel_print_banner();
     
-    set_text_color(UI_TEXT);
-    print_colored("Kernel initialized successfully", UI_SUCCESS);
-    
-    // Return control to assembly code
-}
-
-/*
- * Initialize the file system
- * Fixes the 'ls' command crash issue
- */
-void init_filesystem(void) {
-    // Clear file table
-    for (int i = 0; i < 256; i++) {
-        file_table[i].name[0] = '\0';
-        file_table[i].size = 0;
-        file_table[i].address = 0;
-        file_table[i].type = 0;
+    // Initialize memory management
+    if (memory_init() != OMNIOS_SUCCESS) {
+        kernel_panic("Memory initialization failed");
     }
     
-    // Add default system files
-    // kernel.bin
-    strcpy(file_table[0].name, "KERNEL  BIN");
-    file_table[0].size = 8192;
-    file_table[0].address = 0x2000;
-    file_table[0].type = 1; // System file
+    // Initialize process management
+    if (process_init() != OMNIOS_SUCCESS) {
+        kernel_panic("Process initialization failed");
+    }
     
-    // system.cfg
-    strcpy(file_table[1].name, "SYSTEM  CFG");
-    file_table[1].size = 1024;
-    file_table[1].address = 0x4000;
-    file_table[1].type = 2; // Configuration file
+    // Initialize driver subsystem
+    if (driver_init() != OMNIOS_SUCCESS) {
+        kernel_panic("Driver initialization failed");
+    }
     
-    // test.txt
-    strcpy(file_table[2].name, "TEST    TXT");
-    file_table[2].size = 256;
-    file_table[2].address = 0x5000;
-    file_table[2].type = 3; // Text file
+    // Initialize security subsystem
+    if (security_init() != OMNIOS_SUCCESS) {
+        kernel_panic("Security initialization failed");
+    }
     
-    // calc.opi
-    strcpy(file_table[3].name, "CALC    OPI");
-    file_table[3].size = 2048;
-    file_table[3].address = 0x6000;
-    file_table[3].type = 4; // OPI package
+    // Initialize UI framework
+    if (ui_framework_init() != OMNIOS_SUCCESS) {
+        kernel_panic("UI framework initialization failed");
+    }
     
-    file_count = 4;
+    // Load essential drivers
+    load_essential_drivers();
+    
+    // Initialize system calls
+    syscall_init();
+    
+    // Start init process
+    start_init_process();
+    
+    // Enable interrupts
+    enable_interrupts();
+    
+    // Kernel main loop
+    kernel_main_loop();
 }
 
-/*
- * Initialize hardware drivers
- */
-void init_drivers(void) {
-    // Initialize WiFi driver
-    wifi_driver_init();
+void kernel_early_init(void) {
+    // Clear system state
+    memset(&g_system_state, 0, sizeof(system_state_t));
     
-    // Initialize keyboard driver
-    keyboard_driver_init();
+    // Initialize basic console output
+    console_init();
     
-    // Initialize generic hardware support
-    hardware_driver_init();
+    // Set up interrupt handlers
+    setup_interrupt_handlers();
+    
+    // Initialize timer
+    timer_init();
 }
 
-/*
- * Initialize core applications
- */
-void init_applications(void) {
-    // Register core applications
-    register_application("setup", setup_application_main);
-    register_application("settings", settings_application_main);
-    register_application("notepad", notepad_application_main);
-    register_application("filemanager", filemanager_application_main);
+void kernel_print_banner(void) {
+    console_print("OmniOS 2.0 Kernel - Phoenix Edition\n");
+    console_print("Version: %d.%d.%d Build %d\n", 
+                  OMNIOS_VERSION_MAJOR, 
+                  OMNIOS_VERSION_MINOR, 
+                  OMNIOS_VERSION_PATCH, 
+                  OMNIOS_VERSION_BUILD);
+    console_print("Copyright (c) 2025 OmniOS Team\n\n");
 }
 
-/*
- * Process 'ls' command - Fixed implementation
- */
-int process_ls_command(void) {
-    set_text_color(UI_HIGHLIGHT);
-    print_colored("Directory listing:", UI_HIGHLIGHT);
+void load_essential_drivers(void) {
+    console_print("Loading essential drivers...\n");
     
-    set_text_color(UI_TEXT);
+    // Load keyboard driver
+    if (load_module("keyboard_driver") != OMNIOS_SUCCESS) {
+        console_print("Warning: Keyboard driver failed to load\n");
+    }
     
-    for (int i = 0; i < file_count; i++) {
-        if (file_table[i].name[0] != '\0') {
-            // Format filename for display
-            char display_name[13];
-            format_filename(file_table[i].name, display_name);
+    // Load display driver
+    if (load_module("display_driver") != OMNIOS_SUCCESS) {
+        console_print("Warning: Display driver failed to load\n");
+    }
+    
+    // Load storage driver
+    if (load_module("storage_driver") != OMNIOS_SUCCESS) {
+        console_print("Warning: Storage driver failed to load\n");
+    }
+    
+    // Load WiFi driver (optional)
+    if (load_module("wifi_driver") != OMNIOS_SUCCESS) {
+        console_print("Info: WiFi driver not available\n");
+    }
+    
+    console_print("Driver loading completed\n");
+}
+
+void start_init_process(void) {
+    console_print("Starting init process...\n");
+    
+    // Create init process
+    process_t* init_proc = process_create("init", PROCESS_PRIORITY_HIGH);
+    if (!init_proc) {
+        kernel_panic("Failed to create init process");
+    }
+    
+    // Load init program
+    if (process_load_program(init_proc, "/system/init") != OMNIOS_SUCCESS) {
+        kernel_panic("Failed to load init program");
+    }
+    
+    // Start the process
+    process_start(init_proc);
+}
+
+void kernel_main_loop(void) {
+    console_print("Kernel initialization complete\n");
+    console_print("System ready\n\n");
+    
+    // Update system state
+    g_system_state.total_memory = memory_get_total();
+    g_system_state.free_memory = memory_get_free();
+    g_system_state.active_processes = process_get_count();
+    g_system_state.uptime = 0;
+    g_system_state.gui_enabled = true;
+    strcpy(g_system_state.current_user, "system");
+    
+    // Main kernel loop
+    while (1) {
+        // Process scheduler
+        process_schedule();
+        
+        // Handle interrupts
+        handle_pending_interrupts();
+        
+        // Update system statistics
+        update_system_stats();
+        
+        // Power management
+        if (should_idle()) {
+            cpu_idle();
+        }
+    }
+}
+
+// Module management functions
+int load_module(const char* module_name) {
+    if (g_module_count >= MAX_MODULES) {
+        return OMNIOS_ERROR_MEMORY;
+    }
+    
+    // Find module in filesystem
+    char module_path[256];
+    snprintf(module_path, sizeof(module_path), "/system/modules/%s.mod", module_name);
+    
+    // Load module file
+    void* module_data = load_file(module_path);
+    if (!module_data) {
+        return OMNIOS_ERROR_NOT_FOUND;
+    }
+    
+    // Parse module header
+    module_header_t* header = (module_header_t*)module_data;
+    if (header->magic != MODULE_MAGIC) {
+        free(module_data);
+        return OMNIOS_ERROR_GENERIC;
+    }
+    
+    // Allocate memory for module
+    void* module_base = memory_allocate(header->size);
+    if (!module_base) {
+        free(module_data);
+        return OMNIOS_ERROR_MEMORY;
+    }
+    
+    // Copy module to allocated memory
+    memcpy(module_base, module_data, header->size);
+    free(module_data);
+    
+    // Initialize module structure
+    module_t* module = &g_loaded_modules[g_module_count];
+    strncpy(module->name, module_name, sizeof(module->name) - 1);
+    module->type = header->type;
+    module->version = header->version;
+    module->base_address = (uint32_t)module_base;
+    module->size = header->size;
+    module->init = (void(*)(void))(module_base + header->init_offset);
+    module->cleanup = (void(*)(void))(module_base + header->cleanup_offset);
+    module->loaded = true;
+    
+    // Call module initialization
+    if (module->init) {
+        module->init();
+    }
+    
+    g_module_count++;
+    
+    console_print("Module '%s' loaded successfully\n", module_name);
+    return OMNIOS_SUCCESS;
+}
+
+int unload_module(const char* module_name) {
+    // Find module
+    for (int i = 0; i < g_module_count; i++) {
+        if (strcmp(g_loaded_modules[i].name, module_name) == 0) {
+            module_t* module = &g_loaded_modules[i];
             
-            // Choose color based on file type
-            unsigned char file_color;
-            switch (file_table[i].type) {
-                case 1: file_color = UI_ERROR; break;    // System files (red)
-                case 2: file_color = UI_WARNING; break;  // Config files (yellow)
-                case 3: file_color = UI_TEXT; break;     // Text files (white)
-                case 4: file_color = UI_SUCCESS; break;  // OPI packages (green)
-                default: file_color = UI_TEXT; break;
+            // Call cleanup function
+            if (module->cleanup) {
+                module->cleanup();
             }
             
-            print_colored(display_name, file_color);
+            // Free module memory
+            memory_free((void*)module->base_address);
             
-            // Print file size
-            char size_str[16];
-            format_file_size(file_table[i].size, size_str);
-            print_colored(size_str, UI_TEXT);
+            // Remove from array
+            memmove(&g_loaded_modules[i], &g_loaded_modules[i + 1], 
+                    (g_module_count - i - 1) * sizeof(module_t));
+            g_module_count--;
             
-            // Print file type
-            const char* type_str = get_file_type_string(file_table[i].type);
-            print_colored(type_str, UI_TEXT);
-            
-            print_colored("\n", UI_TEXT);
+            console_print("Module '%s' unloaded\n", module_name);
+            return OMNIOS_SUCCESS;
         }
     }
     
-    return 0; // Success
+    return OMNIOS_ERROR_NOT_FOUND;
 }
 
-/*
- * Install .opi package
- */
-int install_opi_package(const char* filename) {
-    set_text_color(UI_HIGHLIGHT);
-    print_colored("Installing OPI package: ", UI_HIGHLIGHT);
-    print_colored(filename, UI_TEXT);
-    
-    // Find the package file
-    int package_index = -1;
-    for (int i = 0; i < file_count; i++) {
-        if (strcmp(file_table[i].name, filename) == 0) {
-            package_index = i;
-            break;
-        }
-    }
-    
-    if (package_index == -1) {
-        print_colored("Package not found!", UI_ERROR);
-        return -1;
-    }
-    
-    if (file_table[package_index].type != 4) {
-        print_colored("Not a valid OPI package!", UI_ERROR);
-        return -1;
-    }
-    
-    // Simulate package installation
-    print_colored("Extracting package...", UI_TEXT);
-    print_colored("Verifying dependencies...", UI_TEXT);
-    print_colored("Installing files...", UI_TEXT);
-    print_colored("Updating package database...", UI_TEXT);
-    
-    print_colored("Package installed successfully!", UI_SUCCESS);
-    return 0;
+system_state_t* get_system_state(void) {
+    return &g_system_state;
 }
 
-/*
- * Set text color
- */
-void set_text_color(unsigned char color) {
-    // Assembly interface for setting text color
-    __asm__ volatile (
-        "mov %0, %%bl\n\t"
-        "mov $0x09, %%ah\n\t"
-        "mov $' ', %%al\n\t"
-        "mov $1, %%cx\n\t"
-        "int $0x10"
-        :
-        : "r" (color)
-        : "ax", "bx", "cx"
-    );
-}
-
-/*
- * Print colored text
- */
-void print_colored(const char* text, unsigned char color) {
-    set_text_color(color);
+void update_system_stats(void) {
+    static uint32_t last_update = 0;
+    uint32_t current_time = timer_get_ticks();
     
-    while (*text) {
-        __asm__ volatile (
-            "mov %0, %%al\n\t"
-            "mov $0x0E, %%ah\n\t"
-            "int $0x10"
-            :
-            : "r" (*text)
-            : "ax"
-        );
-        text++;
+    // Update every second
+    if (current_time - last_update >= 1000) {
+        g_system_state.free_memory = memory_get_free();
+        g_system_state.active_processes = process_get_count();
+        g_system_state.uptime = current_time / 1000;
+        last_update = current_time;
     }
 }
 
-// Utility functions
-void format_filename(const char* fat_name, char* display_name) {
-    int i, j = 0;
+bool should_idle(void) {
+    // Check if all processes are waiting
+    return process_all_waiting();
+}
+
+void kernel_panic(const char* message) {
+    // Disable interrupts
+    disable_interrupts();
     
-    // Copy name part
-    for (i = 0; i < 8 && fat_name[i] != ' '; i++) {
-        display_name[j++] = fat_name[i];
-    }
+    // Clear screen and display panic message
+    console_clear();
+    console_set_color(CONSOLE_COLOR_RED, CONSOLE_COLOR_BLACK);
+    console_print("\n*** KERNEL PANIC ***\n");
+    console_print("Error: %s\n", message);
+    console_print("System halted.\n");
     
-    // Add dot if extension exists
-    if (fat_name[8] != ' ') {
-        display_name[j++] = '.';
-        
-        // Copy extension
-        for (i = 8; i < 11 && fat_name[i] != ' '; i++) {
-            display_name[j++] = fat_name[i];
-        }
-    }
-    
-    display_name[j] = '\0';
-}
-
-void format_file_size(unsigned int size, char* size_str) {
-    if (size < 1024) {
-        sprintf(size_str, "%u B", size);
-    } else if (size < 1024 * 1024) {
-        sprintf(size_str, "%u KB", size / 1024);
-    } else {
-        sprintf(size_str, "%u MB", size / (1024 * 1024));
+    // Halt the system
+    while (1) {
+        cpu_halt();
     }
 }
 
-const char* get_file_type_string(unsigned char type) {
-    switch (type) {
-        case 1: return "[SYS]";
-        case 2: return "[CFG]";
-        case 3: return "[TXT]";
-        case 4: return "[OPI]";
-        default: return "[???]";
-    }
-}
-
-// Driver initialization functions (implemented in separate driver files)
-extern void wifi_driver_init(void);
-extern void keyboard_driver_init(void);
-extern void hardware_driver_init(void);
-
-// Application registration functions
-extern void register_application(const char* name, void (*main_func)(void));
-extern void setup_application_main(void);
-extern void settings_application_main(void);
-extern void notepad_application_main(void);
-extern void filemanager_application_main(void);
-
-// Standard library functions (minimal implementation)
-int strcmp(const char* str1, const char* str2) {
-    while (*str1 && (*str1 == *str2)) {
-        str1++;
-        str2++;
-    }
-    return *(unsigned char*)str1 - *(unsigned char*)str2;
-}
-
-char* strcpy(char* dest, const char* src) {
-    char* orig_dest = dest;
-    while ((*dest++ = *src++));
-    return orig_dest;
-}
-
-int sprintf(char* str, const char* format, ...) {
-    // Minimal sprintf implementation
-    // For now, just copy the format string
-    strcpy(str, format);
-    return strlen(format);
-}
-
-int strlen(const char* str) {
-    int len = 0;
-    while (str[len]) len++;
-    return len;
-}
+// Assembly functions (implemented in kernel_asm.s)
+extern void enable_interrupts(void);
+extern void disable_interrupts(void);
+extern void cpu_halt(void);
+extern void cpu_idle(void);
+extern void setup_interrupt_handlers(void);
+extern void handle_pending_interrupts(void);

@@ -1,0 +1,47 @@
+{
+  "omnios_2.0_architecture": {
+    "modules": {
+      "bootloader": {
+        "language": "Assembly",
+        "files": ["src/boot/bootloader.asm", "src/boot/stage2.asm"],
+        "responsibilities": ["Hardware initialization", "Kernel loading", "Memory setup"]
+      },
+      "kernel": {
+        "language": "C with Assembly optimizations",
+        "files": ["src/kernel/", "src/kernel/memory/", "src/kernel/process/", "src/kernel/drivers/"],
+        "responsibilities": ["Resource management", "Process scheduling", "Driver interface", "System calls"]
+      },
+      "drivers": {
+        "language": "C",
+        "files": ["src/drivers/wifi/", "src/drivers/keyboard/", "src/drivers/display/", "src/drivers/storage/"],
+        "responsibilities": ["Hardware abstraction", "Device communication", "Interrupt handling"]
+      },
+      "filesystem": {
+        "language": "C",
+        "files": ["src/fs/", "src/fs/fat/", "src/fs/omnifs/"],
+        "responsibilities": ["File operations", "Directory management", "Storage allocation"]
+      },
+      "applications": {
+        "language": "C",
+        "files": [
+          "src/apps/setup/",
+          "src/apps/settings/",
+          "src/apps/notepad/",
+          "src/apps/filemanager/",
+          "src/apps/package_installer/"
+        ],
+        "responsibilities": ["User interface", "Application logic", "System configuration"]
+      },
+      "ui_framework": {
+        "language": "C",
+        "files": ["src/ui/", "src/ui/widgets/", "src/ui/themes/"],
+        "responsibilities": ["Window management", "Widget rendering", "Event handling", "Theme management"]
+      },
+      "security": {
+        "language": "C",
+        "files": ["src/security/", "src/security/auth/", "src/security/crypto/"],
+        "responsibilities": ["User authentication", "Access control", "Encryption", "Input validation"]
+      }
+    }
+  }
+}
