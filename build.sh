@@ -85,9 +85,6 @@ check_dependencies() {
 setup_build_environment() {
     print_header "SETTING UP BUILD ENVIRONMENT"
     
-    if [ -d "$BUILD_
-    print_header "SETTING UP BUILD ENVIRONMENT"
-    
     if [ -d "$BUILD_DIR" ]; then
         print_status "Cleaning existing build directory..."
         rm -rf "$BUILD_DIR"
@@ -312,6 +309,22 @@ cleanup() {
     fi
 }
 
+# Function to run the OS after building (if --run flag is provided)
+run_os() {
+    if [ -f "./omnios.img" ]; then
+        print_header "RUNNING OMNIOS 2.0"
+        print_status "Starting QEMU emulator..."
+        print_status "Press Ctrl+Alt+G to release mouse, Ctrl+Alt+Q to quit"
+        echo ""
+        
+        # Run with QEMU
+        qemu-system-i386 -drive format=raw,file=./omnios.img,index=0,if=floppy -m 16M -display gtk
+    else
+        print_error "No image file found to run. Build first."
+        exit 1
+    fi
+}
+
 # Main build process
 main() {
     # Print build header
@@ -343,10 +356,16 @@ main() {
     echo -e "${YELLOW}Note: The system now uses a professional black background.${NC}"
     echo -e "${YELLOW}First boot will show the setup screen for initial configuration.${NC}"
     echo -e "${YELLOW}The kernel entry point has been fixed for proper startup.${NC}"
+    
+    # Check if --run flag was provided
+    if [[ "$1" == "--run" ]]; then
+        echo ""
+        run_os
+    fi
 }
 
 # Handle script interruption
 trap 'print_error "Build interrupted by user"; cleanup; exit 1' INT TERM
 
-# Run main function
+# Run main function with all arguments
 main "$@"
