@@ -101,13 +101,13 @@ run: all
 	@echo -e "$(WHITE)Available commands: help ls cd install open set admin exit off$(NC)"
 	@echo -e "$(WHITE)File operations: add delete move cut copy$(NC)"
 	@echo -e "$(WHITE)Media/Network: play stop download go retry back$(NC)"
-	$(QEMU) -drive format=raw,file=$(BUILD_DIR)/omnios.img,if=floppy -boot a
+	$(QEMU) -drive format=raw,file=$(BUILD_DIR)/omnios.img,if=floppy -boot a -display curses
 
 # Run without graphics
 .PHONY: run-nographic
 run-nographic: all
 	@echo -e "$(CYAN)Starting OmniOS 2.0 (text mode)...$(NC)"
-	$(QEMU) -drive format=raw,file=$(BUILD_DIR)/omnios.img,if=floppy -boot a -nographic
+	$(QEMU) -drive format=raw,file=$(BUILD_DIR)/omnios.img,if=floppy -boot a -nographic -serial mon:stdio
 
 # Generate build report
 .PHONY: report

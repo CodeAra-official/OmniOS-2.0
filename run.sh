@@ -18,4 +18,10 @@ echo "• Network: download go retry back"
 echo ""
 echo "Starting system..."
 
-qemu-system-i386 -drive format=raw,file=build/omnios.img,if=floppy -boot a
+if [ -z "$DISPLAY" ] && [ -z "$WAYLAND_DISPLAY" ]; then
+    echo "No display detected. Using text mode..."
+    qemu-system-i386 -drive format=raw,file=build/omnios.img,if=floppy -boot a -nographic -serial mon:stdio
+else
+    echo "Starting with display..."
+    qemu-system-i386 -drive format=raw,file=build/omnios.img,if=floppy -boot a -display curses
+fi

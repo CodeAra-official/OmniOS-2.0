@@ -105,5 +105,5 @@ echo -e "  qemu-system-i386 -drive format=raw,file=build/omnios.img,if=floppy -b
 if [ "$1" = "--run" ]; then
     echo ""
     echo -e "${CYAN}Starting OmniOS 2.0 Enhanced Edition...${NC}"
-    qemu-system-i386 -drive format=raw,file=build/omnios.img,if=floppy -boot a
+    qemu-system-i386 -drive format=raw,file=build/omnios.img,if=floppy -boot a -display curses
 fi
